@@ -14,7 +14,6 @@ extern void malloc_printf(const char *fmt, ...);
 #include "tprintf.h"
 #endif
 
-
 #include "nextheap.hpp"
 
 class ParentHeap: public NextHeap {};
@@ -31,6 +30,7 @@ class InitializeMe {
 public:
   InitializeMe()
   {
+    tprintf::OUTPUT_FD = 2; // stderr
 #if 1
     // invoke backtrace so it resolves symbols now
 #if 1 // defined(__linux__)
@@ -78,7 +78,7 @@ bool WeAreOuttaHere::weAreOut = false;
 #define LOCAL_PREFIX(x) x
 #endif
 
-const auto MAX_STACK_LENGTH = 16384;
+const auto MAX_STACK_LENGTH = 16; // 16384;
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void * ptr) {
   return getTheCustomHeap().getSize(ptr); // TODO FIXME adjust for ptr offset?
@@ -111,10 +111,10 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
     //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    char buf[255];
-    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
-    tprintf::tprintf("\"@\"", (const char *) buf);
-    //    tprintf::tprintf("@", (uintptr_t) callstack[i]);
+    //    char buf[255];
+    //    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
+    // tprintf::tprintf("\"@\"", (const char *) buf);
+    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
       tprintf::tprintf(", ");
     }
@@ -153,10 +153,10 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
     //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    char buf[255];
-    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
-    tprintf::tprintf("\"@\"", (const char *) buf);
-    //    tprintf::tprintf("@", (uintptr_t) callstack[i]);
+    //    char buf[255];
+    //sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
+    //tprintf::tprintf("\"@\"", (const char *) buf);
+    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
       tprintf::tprintf(", ");
     }
