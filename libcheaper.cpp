@@ -91,6 +91,9 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
     return getTheCustomHeap().malloc(sz); // ::malloc(sz);
   }
   if (!firstDone) {
+    busy = true;
+    static InitializeMe init;
+    busy = false;
     tprintf::tprintf("{ \"trace\" : [\n");
     tprintf::tprintf("{\n");
     firstDone = true;
@@ -107,15 +110,17 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   busy = false;
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
-    tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    //tprintf::tprintf("@", (uintptr_t) callstack[i]);
+    //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
+    char buf[255];
+    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
+    tprintf::tprintf("\"@\"", (const char *) buf);
+    //    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
       tprintf::tprintf(", ");
     }
     stack_hash ^= (uintptr_t) callstack[i];
   }
   getTheCustomHeap().free(syms);
-  tprintf::tprintf("one up = @\n", __builtin_return_address(1));
   tprintf::tprintf("],\n");
   tprintf::tprintf("  \"size\" : @,\n", sz);
   //  tprintf::tprintf("sz = @, stack frames = @\n", sz, nframes);
@@ -147,8 +152,11 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
   busy = false;
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
-    tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    // tprintf::tprintf("@", (uintptr_t) callstack[i]);
+    //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
+    char buf[255];
+    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
+    tprintf::tprintf("\"@\"", (const char *) buf);
+    //    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
       tprintf::tprintf(", ");
     }
