@@ -33,7 +33,7 @@ public:
   {
 #if 1
     // invoke backtrace so it resolves symbols now
-#if 0 // defined(__linux__)
+#if 1 // defined(__linux__)
     volatile void * dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
 #endif
     void * callstack[4];
@@ -43,9 +43,9 @@ public:
   }
 };
 
-static volatile InitializeMe initme;
+static bool busy = false;
 
-#if 1
+#if 0
 
 static CustomHeapType thang;
 #define getTheCustomHeap() thang
@@ -85,7 +85,6 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void * ptr) {
 }
 
 static bool firstDone = false;
-static bool busy = false;
 
 extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
@@ -102,20 +101,21 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   tprintf::tprintf("  \"stack\": [");
   void * ptr = getTheCustomHeap().malloc(sz);
   void * callstack[MAX_STACK_LENGTH];
-  auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   busy = true;
+  auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   char ** syms = backtrace_symbols(callstack, nframes);
   busy = false;
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
     tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    // tprintf::tprintf("@", (uintptr_t) callstack[i]);
+    //tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
       tprintf::tprintf(", ");
     }
     stack_hash ^= (uintptr_t) callstack[i];
   }
   getTheCustomHeap().free(syms);
+  tprintf::tprintf("one up = @\n", __builtin_return_address(1));
   tprintf::tprintf("],\n");
   tprintf::tprintf("  \"size\" : @,\n", sz);
   //  tprintf::tprintf("sz = @, stack frames = @\n", sz, nframes);
@@ -141,8 +141,8 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
   tprintf::tprintf("  \"action\": \"F\",\n");
   tprintf::tprintf("  \"stack\": [");
   void * callstack[MAX_STACK_LENGTH];
-  auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   busy = true;
+  auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   auto syms = backtrace_symbols(callstack, nframes);
   busy = false;
   uintptr_t stack_hash = 0;
