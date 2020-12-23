@@ -94,40 +94,31 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
     busy = true;
     static InitializeMe init;
     busy = false;
-    tprintf::tprintf("{ \"trace\" : [\n");
-    tprintf::tprintf("{\n");
+    tprintf::tprintf("{ \"trace\" : [\n{\n");
     firstDone = true;
   } else {
     tprintf::tprintf(",{\n");
   }
-  tprintf::tprintf("  \"action\": \"M\",\n");
-  tprintf::tprintf("  \"stack\": [");
+  tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
   void * ptr = getTheCustomHeap().malloc(sz);
   void * callstack[MAX_STACK_LENGTH];
   busy = true;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   char ** syms = backtrace_symbols(callstack, nframes);
   busy = false;
-  uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
     //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
     //    char buf[255];
     //    sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
     // tprintf::tprintf("\"@\"", (const char *) buf);
-    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
-      tprintf::tprintf(", ");
+      tprintf::tprintf("@, ", (uintptr_t) callstack[i]);
+    } else {
+      tprintf::tprintf("@", (uintptr_t) callstack[i]);
     }
-    stack_hash ^= (uintptr_t) callstack[i];
   }
   getTheCustomHeap().free(syms);
-  tprintf::tprintf("],\n");
-  tprintf::tprintf("  \"size\" : @,\n", sz);
-  //  tprintf::tprintf("sz = @, stack frames = @\n", sz, nframes);
-  //  backtrace_symbols_fd(callstack, nframes, fileno(stderr));
-  //  tprintf::tprintf(":@,@\n", stack_hash, ptr, sz);
-  tprintf::tprintf("  \"address\" : @\n", ptr);
-  tprintf::tprintf("}\n");
+  tprintf::tprintf("],\n  \"size\" : @,\n  \"address\" : @\n}\n", sz, ptr);
   return ptr;
 }
 
@@ -143,8 +134,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
   } else {
     tprintf::tprintf(",{\n");
   }    
-  tprintf::tprintf("  \"action\": \"F\",\n");
-  tprintf::tprintf("  \"stack\": [");
+  tprintf::tprintf("  \"action\": \"F\",\n  \"stack\": [");
   void * callstack[MAX_STACK_LENGTH];
   busy = true;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
@@ -152,22 +142,16 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
   busy = false;
   uintptr_t stack_hash = 0;
   for (auto i = 1; i < nframes; i++) {
-    //    tprintf::tprintf("\"@\"", (const char *) syms[i]);
-    //    char buf[255];
-    //sprintf(buf, "0x%lX", (uintptr_t) callstack[i]);
-    //tprintf::tprintf("\"@\"", (const char *) buf);
-    tprintf::tprintf("@", (uintptr_t) callstack[i]);
     if (i < nframes - 1) {
-      tprintf::tprintf(", ");
+      tprintf::tprintf("@, ", (uintptr_t) callstack[i]);
+    } else {
+      tprintf::tprintf("@", (uintptr_t) callstack[i]);
     }
     stack_hash ^= (uintptr_t) callstack[i];
   }
   getTheCustomHeap().free(syms);
   //  ::free(syms);
-  tprintf::tprintf("],\n");
-  tprintf::tprintf("  \"size\" : @,\n", xxmalloc_usable_size(ptr));
-  tprintf::tprintf("  \"address\" : @\n", ptr);
-  tprintf::tprintf("}\n");
+  tprintf::tprintf("],\n  \"size\" : @,\n  \"address\" : @\n}\n", xxmalloc_usable_size(ptr), ptr);
   getTheCustomHeap().free(ptr);
 }
 
