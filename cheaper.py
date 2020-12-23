@@ -5,11 +5,6 @@ import sys
 import subprocess
 from collections import defaultdict
 
-x = json.load(sys.stdin)
-trace = x["trace"]
-
-stack_series = defaultdict(list)
-
 parser = argparse.ArgumentParser("cheaper")
 parser.add_argument("--progname", help="path to executable")
 parser.add_argument("--skip", help="number of stack frames to skip", default=1)
@@ -22,6 +17,11 @@ if not args.progname:
     
 depth = args.skip
 progname = args.progname # "../memory-management-modeling/mallocbench"
+
+x = json.load(sys.stdin)
+trace = x["trace"]
+
+stack_series = defaultdict(list)
 
 stack_info = {}
 

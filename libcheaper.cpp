@@ -30,7 +30,6 @@ class InitializeMe {
 public:
   InitializeMe()
   {
-    tprintf::OUTPUT_FD = 2; // stderr
 #if 1
     // invoke backtrace so it resolves symbols now
 #if 1 // defined(__linux__)
@@ -43,7 +42,7 @@ public:
   }
 };
 
-static bool busy = false;
+static std::atomic<bool> busy { false };
 
 #if 0
 
@@ -70,7 +69,7 @@ public:
 };
 
 WeAreOuttaHere bahbye;
-bool WeAreOuttaHere::weAreOut = false;
+bool WeAreOuttaHere::weAreOut { false };
 
 #if defined(__APPLE__)
 #define LOCAL_PREFIX(x) xx##x
@@ -78,13 +77,13 @@ bool WeAreOuttaHere::weAreOut = false;
 #define LOCAL_PREFIX(x) x
 #endif
 
-const auto MAX_STACK_LENGTH = 16; // 16384;
+const auto MAX_STACK_LENGTH = 4; // 16384;
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void * ptr) {
   return getTheCustomHeap().getSize(ptr); // TODO FIXME adjust for ptr offset?
 }
 
-static bool firstDone = false;
+static std::atomic<bool> firstDone { false };
 
 extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
