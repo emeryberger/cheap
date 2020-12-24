@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "common.hpp"
 
 #if defined(__APPLE__)
@@ -30,16 +34,25 @@ class InitializeMe {
 public:
   InitializeMe()
   {
+    if (!_isInitialized) {
+      //    setlinebuf(stdout);
+      //    setlinebuf(stderr);
 #if 1
-    // invoke backtrace so it resolves symbols now
+      // invoke backtrace so it resolves symbols now
 #if 1 // defined(__linux__)
-    volatile void * dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
+      volatile void * dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
 #endif
-    void * callstack[4];
-    auto frames = backtrace(callstack, 4);
+      void * callstack[4];
+      auto frames = backtrace(callstack, 4);
 #endif
-    //    isInitialized = true;
+      //auto output_file = fopen("cheaper.out", "w+"); // O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+      //setbuf(output_file, nullptr);
+      //tprintf::OUTPUT_FD = fileno(output_file);
+      _isInitialized = true;
+    }
   }
+private:
+  std::atomic<bool> _isInitialized { false };
 };
 
 static std::atomic<bool> busy { false };
