@@ -7,6 +7,8 @@ from collections import defaultdict
 
 parser = argparse.ArgumentParser("cheaper")
 parser.add_argument("--progname", help="path to executable")
+parser.add_argument("--threshold-mallocs", help="threshold allocations to report", default=100)
+parser.add_argument("--threshold-score", help="threshold reporting score", default=0.8)
 parser.add_argument("--skip", help="number of stack frames to skip", default=1)
 
 args = parser.parse_args()
@@ -15,7 +17,7 @@ if not args.progname:
     parser.print_help()
     sys.exit(-1)
     
-depth = args.skip
+depth = int(args.skip)
 progname = args.progname # "../memory-management-modeling/mallocbench"
 
 x = json.load(sys.stdin)
@@ -39,26 +41,31 @@ for i in trace:
     stack_series[str(stk)].append(i)
 
 for k in stack_series:
-    if len(stack_series[k]) < 500:
+    if len(stack_series[k]) < int(args.threshold_mallocs):
         continue
-    print(k, len(stack_series[k]))
     # Compute total memory footprint
     total_footprint = 0
     for i in stack_series[k]:
         if i["action"] == "M":
             total_footprint += i["size"]
-    print("total footprint = " + str(total_footprint))
     # Compute actual footprint
     actual_footprint = 0
+    mallocs = set()
     for i in stack_series[k]:
         if i["action"] == "M":
             actual_footprint += i["size"]
+            mallocs.add(i["address"])
         elif i["action"] == "F":
-            actual_footprint -= i["size"]
-    print("actual footprint = " + str(actual_footprint))
+            if i["address"] in mallocs:
+                actual_footprint -= i["size"]
+                mallocs.remove(i["address"])
     # Compute score (0 is worst, 1 is best - for region replacement).
     score = 0
     if total_footprint != 0:
         score = actual_footprint / total_footprint
-    print("score = " + str(score))
-    print("----")
+    if score >= float(args.threshold_score):
+        print(k, len(stack_series[k]))
+        print("total footprint = " + str(total_footprint))
+        print("actual footprint = " + str(actual_footprint))
+        print("score = " + str(score))
+        print("----")
