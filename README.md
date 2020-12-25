@@ -1,8 +1,8 @@
-## Cheaper
+# Cheaper
 
 Cheaper is an analysis tool for identifying optimization opportunities via custom allocation.
 
-# Usage
+## Usage
 
 First, you run your program with the Cheaper library, as follows:
 
