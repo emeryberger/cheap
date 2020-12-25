@@ -48,8 +48,8 @@ for i in trace:
     stk = [stack_info[k] for k in i["stack"][depth:]]
     stack_series[str(stk)].append(i)
 
-# Iterate through each call site
-for k in stack_series:
+# Iterate through each call site, in descending order by number of allocations
+for k in sorted(stack_series, key=len, reverse=True):
     sizes = set()
     size_histogram = defaultdict(int)
     if len(stack_series[k]) < int(args.threshold_mallocs):
