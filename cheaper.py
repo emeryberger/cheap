@@ -1,6 +1,7 @@
 """cheaper.py: identifies where to apply custom allocators"""
 
-import json
+# import json
+import orjson
 import math
 import os
 import argparse
@@ -26,7 +27,11 @@ depth = int(args.skip)
 progname = args.progname
 
 with open("cheaper.out", "r") as f:
-    x = json.load(f)
+    file_contents = f.read()
+
+x = orjson.loads(file_contents)
+# x = json.loads(file_contents)
+
 trace = x["trace"]
 
 stack_series = defaultdict(list)
@@ -54,7 +59,7 @@ for k in sorted(stack_series, key=len, reverse=True):
     size_histogram = defaultdict(int)
     if len(stack_series[k]) < int(args.threshold_mallocs):
         # Ignore call sites with too few mallocs
-        continue
+        break # since sorted, the others all have fewer mallocs
     # Compute total memory footprint (excluding frees)
     # We use this to compute a "region score" later.
     total_footprint = 0
