@@ -6,13 +6,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "common.hpp"
-#include "tprintf.h"
 #include "nextheap.hpp"
+#include "tprintf.h"
 
 #if defined(__APPLE__)
 #include "macinterpose.h"
@@ -24,9 +24,12 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-#define gettid() pthread_self()
+const auto MAX_STACK_LENGTH = 4; // 16384;
 
-class ParentHeap: public NextHeap {};
+static __thread uint64_t _tid;
+#define gettid() ((uintptr_t)&_tid)
+
+class ParentHeap : public NextHeap {};
 
 class CustomHeapType : public ParentHeap {
 public:
@@ -34,35 +37,32 @@ public:
   void unlock() {}
 };
 
-//typedef NextHeap CustomHeapType;
-
 class InitializeMe {
 public:
-  InitializeMe()
-  {
+  InitializeMe() {
     if (!_isInitialized) {
 #if 1
       // invoke backtrace so it resolves symbols now
 #if 1 // defined(__linux__)
-      volatile void * dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
+      volatile void *dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
 #endif
-      void * callstack[4];
+      void *callstack[4];
       auto frames = backtrace(callstack, 4);
 #endif
-      //auto output_file = fopen("cheaper.out", "w+"); // O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
-      //setbuf(output_file, nullptr);
-      //tprintf::OUTPUT_FD = fileno(output_file);
+      auto output_file =
+          fopen("cheaper.out", "w+"); // O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+      tprintf::FD = fileno(output_file);
       _isInitialized = true;
     }
   }
+
 private:
-  std::atomic<bool> _isInitialized { false };
+  std::atomic<bool> _isInitialized{false};
 };
 
-static std::atomic<bool> busy { false };
+static std::atomic<bool> busy{false};
 
-
-CustomHeapType& getTheCustomHeap() {
+CustomHeapType &getTheCustomHeap() {
   static CustomHeapType thang;
   return thang;
 }
@@ -70,8 +70,7 @@ CustomHeapType& getTheCustomHeap() {
 // Close the JSON when we exit.
 class WeAreOuttaHere {
 public:
-  ~WeAreOuttaHere()
-  {
+  ~WeAreOuttaHere() {
     tprintf::tprintf("] }\n");
     weAreOut = true;
   }
@@ -79,35 +78,32 @@ public:
 };
 
 WeAreOuttaHere bahbye;
-std::atomic<bool> WeAreOuttaHere::weAreOut { false };
+std::atomic<bool> WeAreOuttaHere::weAreOut{false};
 
-const auto MAX_STACK_LENGTH = 4; // 16384;
-
-extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void * ptr) {
+extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
   return getTheCustomHeap().getSize(ptr);
 }
 
-static std::atomic<bool> firstDone { false };
+static std::atomic<bool> firstDone{false};
 
 static void printStack() {
-  void * callstack[MAX_STACK_LENGTH];
+  void *callstack[MAX_STACK_LENGTH];
+  char buf[256 * MAX_STACK_LENGTH];
   busy = true;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
-  char ** syms = backtrace_symbols(callstack, nframes);
+  char **syms = backtrace_symbols(callstack, nframes);
   busy = false;
-  for (auto i = 1; i < nframes; i++) {
-    // JSON doesn't allow trailing commas at the end,
-    // which is stupid, but we have to deal with it.
-    if (i < nframes - 1) {
-      tprintf::tprintf("@, ", (uintptr_t) callstack[i]);
-    } else {
-      tprintf::tprintf("@", (uintptr_t) callstack[i]);
-    }
+  char *b = buf;
+  // JSON doesn't allow trailing commas at the end,
+  // which is stupid, but we have to deal with it.
+  for (auto i = 1; i < nframes - 1; i++) {
+    tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
   }
+  tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1]);
   getTheCustomHeap().free(syms);
 }
 
-extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   // Prevent loop due to internal call by backtrace_symbols
   // and omit any records once we have "ended" to prevent
   // corrupting the JSON output.
@@ -126,41 +122,43 @@ extern "C" ATTRIBUTE_EXPORT void * xxmalloc(size_t sz) {
   }
   tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
   printStack();
-  void * ptr = getTheCustomHeap().malloc(sz);
+  void *ptr = getTheCustomHeap().malloc(sz);
   auto tid = gettid();
-  tprintf::tprintf("],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", sz, ptr, tid);
+  tprintf::tprintf(
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", sz, ptr,
+      tid);
   return ptr;
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree(void * ptr) {
+extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   if (busy || WeAreOuttaHere::weAreOut) {
+    //  if (busy || WeAreOuttaHere::weAreOut) {
     getTheCustomHeap().free(ptr);
     return;
   }
   if (!firstDone) {
-    tprintf::tprintf("[\n{\n");
+    tprintf::tprintf("[\n{\n  \"action\": \"F\",\n  \"stack\": [");
     firstDone = true;
   } else {
-    tprintf::tprintf(",{\n");
-  }    
-  tprintf::tprintf("  \"action\": \"F\",\n  \"stack\": [");
+    tprintf::tprintf(",{\n  \"action\": \"F\",\n  \"stack\": [");
+  }
   printStack();
   auto tid = gettid();
-  tprintf::tprintf("],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", xxmalloc_usable_size(ptr), ptr, tid);
+  tprintf::tprintf(
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
+      xxmalloc_usable_size(ptr), ptr, tid);
   getTheCustomHeap().free(ptr);
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void * ptr, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
   xxfree(ptr);
 }
 
-extern "C" ATTRIBUTE_EXPORT void * xxmemalign(size_t alignment, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
   return getTheCustomHeap().memalign(alignment, sz);
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxmalloc_lock() {
-  getTheCustomHeap().lock();
-}
+extern "C" ATTRIBUTE_EXPORT void xxmalloc_lock() { getTheCustomHeap().lock(); }
 
 extern "C" ATTRIBUTE_EXPORT void xxmalloc_unlock() {
   getTheCustomHeap().unlock();
