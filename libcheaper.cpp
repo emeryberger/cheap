@@ -24,10 +24,9 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-const auto MAX_STACK_LENGTH = 4; // 16384;
+const auto MAX_STACK_LENGTH = 5; // 16384;
 
-static __thread uint64_t _tid;
-#define gettid() ((uintptr_t)&_tid)
+#define gettid() (pthread_self())
 
 class ParentHeap : public NextHeap {};
 
@@ -116,11 +115,11 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     static InitializeMe init;
     busy = false;
     tprintf::tprintf("{ \"trace\" : [\n{\n");
+    tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
     firstDone = true;
   } else {
-    tprintf::tprintf(",{\n");
+    tprintf::tprintf(",{\n  \"action\": \"M\",\n  \"stack\": [");
   }
-  tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
   printStack();
   void *ptr = getTheCustomHeap().malloc(sz);
   auto tid = gettid();
@@ -132,7 +131,6 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
 
 extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   if (busy || WeAreOuttaHere::weAreOut) {
-    //  if (busy || WeAreOuttaHere::weAreOut) {
     getTheCustomHeap().free(ptr);
     return;
   }
