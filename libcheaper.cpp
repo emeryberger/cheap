@@ -114,7 +114,15 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     busy = true;
     static InitializeMe init;
     busy = false;
-    tprintf::tprintf("{ \"trace\" : [\n{\n");
+    // Get the executable name.
+    char fname[256];
+    // Linux only
+    int fd = open("/proc/self/comm", O_RDONLY);
+    read(fd, fname, 256);
+    // Strip off trailing carriage return.
+    fname[strlen(fname)-1] = '\0';
+    tprintf::tprintf("{ \"executable\" : \"@\",\n", fname);
+    tprintf::tprintf("  \"trace\" : [\n{\n");
     tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
     firstDone = true;
   } else {
