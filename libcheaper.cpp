@@ -124,8 +124,8 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   void *ptr = getTheCustomHeap().malloc(sz);
   auto tid = gettid();
   tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", xxmalloc_usable_size(ptr), ptr,
-      tid);
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
+      xxmalloc_usable_size(ptr), ptr, tid);
   return ptr;
 }
 
