@@ -9,8 +9,8 @@ import subprocess
 from collections import defaultdict
 from textwrap import dedent
 
-class Cheaper:
 
+class Cheaper:
     @staticmethod
     def parse():
         usage = dedent(
@@ -27,9 +27,13 @@ class Cheaper:
         parser.add_argument(
             "--threshold-mallocs", help="threshold allocations to report", default=100
         )
-        parser.add_argument("--threshold-score", help="threshold reporting score", default=0.8)
+        parser.add_argument(
+            "--threshold-score", help="threshold reporting score", default=0.8
+        )
         # parser.add_argument("--skip", help="number of stack frames to skip", default=1)
-        parser.add_argument("--depth", help="total number of stack frames to use (from top)", default=5)
+        parser.add_argument(
+            "--depth", help="total number of stack frames to use (from top)", default=5
+        )
 
         args = parser.parse_args()
 
@@ -38,7 +42,7 @@ class Cheaper:
             sys.exit(-1)
 
         return args
-        
+
     def __init__(self, progname, depth):
         with open("cheaper.out", "r") as f:
             file_contents = f.read()
@@ -140,12 +144,13 @@ class Cheaper:
 
         # Separate each trace by its complete stack signature.
         for i in trace:
-            stk = [stack_info[k] for k in i["stack"][-depth:]] # [skip:depth+skip]]
+            stk = [stack_info[k] for k in i["stack"][-depth:]]  # [skip:depth+skip]]
             stack_series[str(stk)].append(i)
 
         # Iterate through each call site.
         for k in stack_series:
             Cheaper.analyze(stack_series[k], k, progname, depth)
+
 
 if __name__ == "__main__":
     args = Cheaper.parse()
