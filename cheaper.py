@@ -96,6 +96,7 @@ class Cheaper:
         size_histogram = defaultdict(int)
         actual_footprint = 0  # mallocs - frees
         peak_footprint = 0  # max actual_footprint
+        peak_footprint_index = 0 # index of alloc w/max footprint
         nofree_footprint = 0  # sum(mallocs)
         # set of all thread ids used for malloc/free
         tids = set()
@@ -111,9 +112,7 @@ class Cheaper:
                 actual_footprint += i["size"]
                 if actual_footprint > peak_footprint:
                     peak_footprint = actual_footprint
-                    # Recompute utilization
-                    # FIXME: wasteful, could recompute at end
-                    frag = Cheaper.utilization(allocs, index)
+                    peak_footprint_index = index
                 # Compute total 'no-free' memory footprint (excluding frees) This
                 # is how much memory would be consumed if we didn't free anything
                 # until the end (as with regions/arenas). We use this to compute a
@@ -131,6 +130,8 @@ class Cheaper:
                     pass
                     # print(mallocs)
                     # print(str(i["address"]) + " not found")
+        # Recompute utilization
+        frag = Cheaper.utilization(allocs, peak_footprint_index)
         # Compute entropy of sizes
         total = len(allocs)
         normalized_entropy = -sum(
