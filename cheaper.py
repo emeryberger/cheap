@@ -11,6 +11,10 @@ from textwrap import dedent
 
 
 class Cheaper:
+
+    # For measuring page-level fragmentation
+    __pagesize = 4096
+
     @staticmethod
     def parse():
         usage = dedent(
@@ -51,6 +55,36 @@ class Cheaper:
         Cheaper.process_trace(trace, progname, depth)
 
     @staticmethod
+    def utilization(allocs, n):
+        """Returns the page-level fragmentation of the sequence of allocs up to the nth item."""
+        assert n <= len(allocs)
+        pages = defaultdict(int)
+        in_use = 0
+        mallocs = set()
+        for (index, i) in enumerate(allocs):
+            if index > n:
+                break
+            # Ignore objects larger than 1/2 the page size.
+            if i["size"] > Cheaper.__pagesize / 2:
+                break
+            pageno = i["address"] // Cheaper.__pagesize
+            if i["action"] == "M":
+                mallocs.add(i["address"])
+                pages[pageno] += 1
+                in_use += i["size"]
+            elif i["action"] == "F":
+                if i["address"] in mallocs:
+                    pages[pageno] -= 1
+                    in_use -= i["size"]
+                    mallocs.remove(i["address"])
+                    if pages[pageno] == 0:
+                        del pages[pageno]
+        if len(pages) > 0:
+            return in_use / (Cheaper.__pagesize * len(pages))
+        else:
+            return 0
+
+    @staticmethod
     def analyze(allocs, stackstr, progname, depth):
         """Analyze a trace of allocations and frees."""
         if len(allocs) < int(args.threshold_mallocs):
@@ -67,7 +101,8 @@ class Cheaper:
         tids = set()
         # set of all (currently) allocated objects from this site
         mallocs = set()
-        for i in allocs:
+        utilization = 0
+        for (index, i) in enumerate(allocs):
             sizes.add(i["size"])
             size_histogram[i["size"]] += 1
             tids.add(i["tid"])
@@ -76,6 +111,9 @@ class Cheaper:
                 actual_footprint += i["size"]
                 if actual_footprint > peak_footprint:
                     peak_footprint = actual_footprint
+                    # Recompute utilization
+                    # FIXME: wasteful, could recompute at end
+                    frag = Cheaper.utilization(allocs, index)
                 # Compute total 'no-free' memory footprint (excluding frees) This
                 # is how much memory would be consumed if we didn't free anything
                 # until the end (as with regions/arenas). We use this to compute a
@@ -114,6 +152,7 @@ class Cheaper:
             print("-----")
             print("allocations = ", len(allocs))
             print("candidate for region allocation")
+            print("* utilization at max = " + str(frag))
             print("* region score = " + str(region_score), "(1 is best)")
             if len(tids) == 1:
                 print("* single-threaded (no lock needed)")
