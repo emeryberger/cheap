@@ -96,7 +96,7 @@ class Cheaper:
         size_histogram = defaultdict(int)
         actual_footprint = 0  # mallocs - frees
         peak_footprint = 0  # max actual_footprint
-        peak_footprint_index = 0 # index of alloc w/max footprint
+        peak_footprint_index = 0  # index of alloc w/max footprint
         nofree_footprint = 0  # sum(mallocs)
         # set of all thread ids used for malloc/free
         tids = set()
@@ -161,7 +161,6 @@ class Cheaper:
             size_list.sort()
             if len(sizes) == 1:
                 print("* all the same size (", size_list[0], ")")
-                print(sizes)
             else:
                 print(str(len(sizes)) + " different sizes = ", size_list)
                 print("size entropy = ", normalized_entropy)
