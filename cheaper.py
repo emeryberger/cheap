@@ -66,17 +66,17 @@ class Cheaper:
                 break
             # Ignore objects larger than 1/2 the page size.
             if i["size"] > Cheaper.__pagesize / 2:
-                break
-            pageno = i["address"] // Cheaper.__pagesize
+                continue
+            pageno = Cheaper.__pagesize * (i["address"] // Cheaper.__pagesize)
             if i["action"] == "M":
                 mallocs.add(i["address"])
                 pages[pageno] += 1
                 in_use += i["size"]
             elif i["action"] == "F":
                 if i["address"] in mallocs:
-                    pages[pageno] -= 1
                     in_use -= i["size"]
                     mallocs.remove(i["address"])
+                    pages[pageno] -= 1
                     if pages[pageno] == 0:
                         del pages[pageno]
         if len(pages) > 0:
@@ -147,8 +147,8 @@ class Cheaper:
         if nofree_footprint != 0:
             region_score = peak_footprint / nofree_footprint
         if region_score >= float(args.threshold_score):
-            stk = eval(stackstr)
             print("=====")
+            stk = eval(stackstr)
             print(stk[0])
             print("-----")
             print("allocations = ", len(allocs))
@@ -161,6 +161,7 @@ class Cheaper:
             size_list.sort()
             if len(sizes) == 1:
                 print("* all the same size (", size_list[0], ")")
+                print(sizes)
             else:
                 print(str(len(sizes)) + " different sizes = ", size_list)
                 print("size entropy = ", normalized_entropy)
