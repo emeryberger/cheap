@@ -24,7 +24,7 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-const auto MAX_STACK_LENGTH = 5; // 16384;
+const auto MAX_STACK_LENGTH = 8; // 16384;
 
 #define gettid() (pthread_self())
 
@@ -124,7 +124,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   void *ptr = getTheCustomHeap().malloc(sz);
   auto tid = gettid();
   tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", sz, ptr,
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", xxmalloc_usable_size(ptr), ptr,
       tid);
   return ptr;
 }
