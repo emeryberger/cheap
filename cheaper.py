@@ -52,7 +52,21 @@ class Cheaper:
             file_contents = f.read()
         x = orjson.loads(file_contents)
         trace = x["trace"]
-        Cheaper.process_trace(trace, progname, depth)
+        analyzed = Cheaper.process_trace(trace, progname, depth)
+        # Remove duplicates
+        dedup = {}
+        for item in analyzed:
+            dedup[hash(str(item))] = item
+        analyzed = dedup.values()
+        # Sort in reverse order by region score * number of allocations
+        analyzed = sorted(analyzed, key=lambda a: a["region_score"] * a["allocs"], reverse=True)
+        for item in analyzed:
+            for stk in item["stack"]:
+                print(stk)
+            print("-----")
+            print("region score = ", item["region_score"])
+            print("number of allocs = ", item["allocs"])
+            print("=====")
 
     @staticmethod
     def utilization(allocs, n):
@@ -73,12 +87,12 @@ class Cheaper:
                 pages[pageno] += 1
                 in_use += i["size"]
             elif i["action"] == "F":
+                in_use -= i["size"]
                 if i["address"] in mallocs:
-                    in_use -= i["size"]
                     mallocs.remove(i["address"])
-                    pages[pageno] -= 1
-                    if pages[pageno] == 0:
-                        del pages[pageno]
+                pages[pageno] -= 1
+                if pages[pageno] == 0:
+                    del pages[pageno]
         if len(pages) > 0:
             return in_use / (Cheaper.__pagesize * len(pages))
         else:
@@ -87,9 +101,10 @@ class Cheaper:
     @staticmethod
     def analyze(allocs, stackstr, progname, depth):
         """Analyze a trace of allocations and frees."""
+        analyzed_list = []
         if len(allocs) < int(args.threshold_mallocs):
             # Ignore call sites with too few mallocs
-            return
+            return analyzed_list
         # The set of sizes of allocated objects.
         sizes = set()
         # A histogram of the # of objects allocated of each size.
@@ -102,12 +117,14 @@ class Cheaper:
         tids = set()
         # set of all (currently) allocated objects from this site
         mallocs = set()
+        num_allocs = 0
         utilization = 0
         for (index, i) in enumerate(allocs):
             sizes.add(i["size"])
             size_histogram[i["size"]] += 1
             tids.add(i["tid"])
             if i["action"] == "M":
+                num_allocs += 1
                 # Compute actual footprint (taking into account mallocs and frees).
                 actual_footprint += i["size"]
                 if actual_footprint > peak_footprint:
@@ -131,7 +148,7 @@ class Cheaper:
                     # print(mallocs)
                     # print(str(i["address"]) + " not found")
         # Recompute utilization
-        frag = Cheaper.utilization(allocs, peak_footprint_index)
+        # frag = Cheaper.utilization(allocs, peak_footprint_index)
         # Compute entropy of sizes
         total = len(allocs)
         normalized_entropy = -sum(
@@ -147,25 +164,22 @@ class Cheaper:
         if nofree_footprint != 0:
             region_score = peak_footprint / nofree_footprint
         if region_score >= float(args.threshold_score):
-            print("=====")
             stk = eval(stackstr)
-            print(stk[0])
-            print("-----")
-            print("allocations = ", len(allocs))
-            print("candidate for region allocation")
-            print("* utilization at max = " + str(frag))
-            print("* region score = " + str(region_score), "(1 is best)")
-            if len(tids) == 1:
-                print("* single-threaded (no lock needed)")
             size_list = list(sizes)
             size_list.sort()
-            if len(sizes) == 1:
-                print("* all the same size (", size_list[0], ")")
-            else:
-                print(str(len(sizes)) + " different sizes = ", size_list)
-                print("size entropy = ", normalized_entropy)
-            print("peak footprint = " + str(peak_footprint))
-            print("'no free' footprint = " + str(nofree_footprint))
+            stklist = stk[0].split('\n')
+            output = {
+                "stack" : stklist,
+                "allocs" : num_allocs,
+                "region_score" : region_score,
+                "threads" : len(tids),
+                "sizes" : size_list,
+                "size_entropy" : normalized_entropy,
+                "peak_footprint" : peak_footprint,
+                "nofree_footprint" : nofree_footprint
+            }
+            analyzed_list.append(output)
+        return analyzed_list
 
     @staticmethod
     def process_trace(trace, progname, depth):
@@ -177,7 +191,7 @@ class Cheaper:
             for stkaddr in i["stack"][-depth:]:
                 if stkaddr not in stack_info:
                     result = subprocess.run(
-                        ["addr2line", hex(stkaddr), "-i", "-f", "-C", "-e", progname],
+                        ["addr2line", hex(stkaddr), "-C", "-e", progname],
                         stdout=subprocess.PIPE,
                     )
                     stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
@@ -188,8 +202,11 @@ class Cheaper:
             stack_series[str(stk)].append(i)
 
         # Iterate through each call site.
-        for k in stack_series:
-            Cheaper.analyze(stack_series[k], k, progname, depth)
+        analyzed = []
+        for d in range(1, depth):
+            for k in stack_series:
+                analyzed += Cheaper.analyze(stack_series[k], k, progname, d)
+        return analyzed
 
 
 if __name__ == "__main__":
