@@ -95,7 +95,7 @@ static void printStack() {
   char *b = buf;
   // JSON doesn't allow trailing commas at the end,
   // which is stupid, but we have to deal with it.
-  for (auto i = 1; i < nframes - 1; i++) {
+  for (auto i = 0; i < nframes - 1; i++) {
     tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
   }
   tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1]);
@@ -114,6 +114,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     busy = true;
     static InitializeMe init;
     busy = false;
+#if 0
     // Get the executable name.
     char fname[256];
     // Linux only
@@ -123,6 +124,9 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     fname[strlen(fname)-1] = '\0';
     tprintf::tprintf("{ \"executable\" : \"@\",\n", fname);
     tprintf::tprintf("  \"trace\" : [\n{\n");
+#else
+    tprintf::tprintf("{ \"trace\" : [\n{\n");
+#endif
     tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
     firstDone = true;
   } else {
