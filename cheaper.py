@@ -56,7 +56,17 @@ class Cheaper:
         # Remove duplicates
         dedup = {}
         for item in analyzed:
-            dedup[hash(str(item))] = item
+            key = hash(str(item["stack"]))
+            if key in dedup:
+                # Merge duplicate stacks
+                dedup[key]["allocs"] += item["allocs"]
+                dedup[key]["sizes"] = dedup[key]["sizes"].union(item["sizes"])
+                dedup[key]["threads"] = dedup[key]["threads"].union(item["threads"])
+                # Recomputing region score = tricky...
+                # For now, use weighted average
+                dedup[key]["region_score"] = (dedup[key]["allocs"] * dedup[key]["region_score"] + item["allocs"] * item["region_score"]) / (dedup[key]["allocs"] + item["allocs"])
+            else:
+                dedup[key] = item
         analyzed = dedup.values()
         # Sort in reverse order by region score * number of allocations
         analyzed = sorted(analyzed, key=lambda a: a["region_score"] * a["allocs"], reverse=True)
@@ -66,6 +76,8 @@ class Cheaper:
             print("-----")
             print("region score = ", item["region_score"])
             print("number of allocs = ", item["allocs"])
+            print("sizes = ", item["sizes"])
+            print("threads = ", item["threads"])
             print("=====")
 
     @staticmethod
@@ -165,15 +177,15 @@ class Cheaper:
             region_score = peak_footprint / nofree_footprint
         if region_score >= float(args.threshold_score):
             stk = eval(stackstr)
-            size_list = list(sizes)
-            size_list.sort()
+            #size_list = list(sizes)
+            #size_list.sort()
             stklist = stk[0].split('\n')
             output = {
                 "stack" : stklist,
                 "allocs" : num_allocs,
                 "region_score" : region_score,
-                "threads" : len(tids),
-                "sizes" : size_list,
+                "threads" : tids,
+                "sizes" : sizes,
                 "size_entropy" : normalized_entropy,
                 "peak_footprint" : peak_footprint,
                 "nofree_footprint" : nofree_footprint
