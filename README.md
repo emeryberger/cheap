@@ -1,10 +1,14 @@
-# Cheaper
+# CHeaper
 
-Cheaper is an analysis tool for identifying optimization opportunities via custom allocation.
+CHeaper identifies optimizations where a custom heap can be used to improve application performance.
 
 ## Usage
 
-First, you run your program with the Cheaper library, as follows:
+CHeaper consists of two parts:
+* `libcheaper.so`, a Linux library that produces traces from your C/C++ program
+* `cheaper.py`, a Python script that analyzes the traces.
+
+First, you run your program with the CHeaper library, as follows:
 
     LD_PRELOAD=libcheaper.so ./yourprogram
 
@@ -14,7 +18,7 @@ Note: you may need to install files from `requirements.txt` first:
 
     pip install -r requirements.txt
 
-Now run Cheaper as follows:
+Now run CHeaper as follows:
 
     python3 cheaper.py --progname ./yourprogram
 
