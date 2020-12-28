@@ -34,7 +34,7 @@ class Cheaper:
         parser.add_argument(
             "--threshold-score", help="threshold reporting score", default=0.8
         )
-        # parser.add_argument("--skip", help="number of stack frames to skip", default=1)
+        parser.add_argument("--skip", help="number of stack frames to skip", default=0)
         parser.add_argument(
             "--depth", help="total number of stack frames to use (from top)", default=5
         )
@@ -47,12 +47,12 @@ class Cheaper:
 
         return args
 
-    def __init__(self, progname, depth):
+    def __init__(self, progname, depth, threshold_mallocs, threshold_score):
         with open("cheaper.out", "r") as f:
             file_contents = f.read()
         x = orjson.loads(file_contents)
         trace = x["trace"]
-        analyzed = Cheaper.process_trace(trace, progname, depth)
+        analyzed = Cheaper.process_trace(trace, progname, depth, threshold_mallocs, threshold_score)
         # Remove duplicates
         dedup = {}
         for item in analyzed:
@@ -116,10 +116,10 @@ class Cheaper:
             return 0
 
     @staticmethod
-    def analyze(allocs, stackstr, progname, depth):
+    def analyze(allocs, stackstr, progname, depth, threshold_mallocs, threshold_score):
         """Analyze a trace of allocations and frees."""
         analyzed_list = []
-        if len(allocs) < int(args.threshold_mallocs):
+        if len(allocs) < int(threshold_mallocs):
             # Ignore call sites with too few mallocs
             return analyzed_list
         # The set of sizes of allocated objects.
@@ -180,7 +180,7 @@ class Cheaper:
         region_score = 0
         if nofree_footprint != 0:
             region_score = peak_footprint / nofree_footprint
-        if region_score >= float(args.threshold_score):
+        if region_score >= float(threshold_score):
             stk = eval(stackstr)
             output = {
                 "stack": stk,
@@ -196,7 +196,7 @@ class Cheaper:
         return analyzed_list
 
     @staticmethod
-    def process_trace(trace, progname, depth):
+    def process_trace(trace, progname, depth, threshold_mallocs, threshold_score):
         stack_series = defaultdict(list)
         stack_info = {}
 
@@ -213,13 +213,14 @@ class Cheaper:
         # Separate each trace by its complete stack signature.
         for i in trace:
             stk = [stack_info[k] for k in i["stack"][-depth:]]  # [skip:depth+skip]]
-            stack_series[str(stk)].append(i)
+            stkstr = str(stk)
+            stack_series[stkstr].append(i)
 
         # Iterate through each call site.
         analyzed = []
-        for d in range(1, depth):
+        for d in range(0, depth):
             for k in stack_series:
-                analyzed += Cheaper.analyze(stack_series[k], k, progname, d)
+                analyzed += Cheaper.analyze(stack_series[k], k, progname, d, threshold_mallocs, threshold_score)
         return analyzed
 
 
@@ -227,4 +228,6 @@ if __name__ == "__main__":
     args = Cheaper.parse()
     depth = int(args.depth)
     progname = args.progname
-    c = Cheaper(progname, depth)
+    threshold_mallocs = int(args.threshold_mallocs)
+    threshold_score = float(args.threshold_score)
+    c = Cheaper(progname, depth, threshold_mallocs, threshold_score)
