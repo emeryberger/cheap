@@ -6,7 +6,7 @@ by [Emery Berger](https://emeryberger.com)
 
 # About CHeaper
 
-Cheaper identifies optimizations where a custom heap can be used to improve application performance.
+CHeaper identifies optimizations where a Custom Heap can be used to improve application performance.
 
 CHeaper consists of two parts:
 1. `libcheaper.so`, a Linux library that produces traces from your C/C++ program's memory management activity, and
