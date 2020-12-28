@@ -182,11 +182,8 @@ class Cheaper:
             region_score = peak_footprint / nofree_footprint
         if region_score >= float(args.threshold_score):
             stk = eval(stackstr)
-            # size_list = list(sizes)
-            # size_list.sort()
-            stklist = stk[0].split("\n")
             output = {
-                "stack": stklist,
+                "stack": stk,
                 "allocs": num_allocs,
                 "region_score": region_score,
                 "threads": tids,
