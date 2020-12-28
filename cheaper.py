@@ -52,7 +52,9 @@ class Cheaper:
             file_contents = f.read()
         x = orjson.loads(file_contents)
         trace = x["trace"]
-        analyzed = Cheaper.process_trace(trace, progname, depth, threshold_mallocs, threshold_score)
+        analyzed = Cheaper.process_trace(
+            trace, progname, depth, threshold_mallocs, threshold_score
+        )
         # Remove duplicates
         dedup = {}
         for item in analyzed:
@@ -220,7 +222,9 @@ class Cheaper:
         analyzed = []
         for d in range(0, depth):
             for k in stack_series:
-                analyzed += Cheaper.analyze(stack_series[k], k, progname, d, threshold_mallocs, threshold_score)
+                analyzed += Cheaper.analyze(
+                    stack_series[k], k, progname, d, threshold_mallocs, threshold_score
+                )
         return analyzed
 
 
