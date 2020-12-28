@@ -1,12 +1,18 @@
 # CHeaper
 
-CHeaper identifies optimizations where a custom heap can be used to improve application performance.
+CHeaper: a `malloc`/`new` optimizer
 
-## Usage
+by [Emery Berger](https://emeryberger.com)
+
+# About CHeaper
+
+Cheaper identifies optimizations where a custom heap can be used to improve application performance.
 
 CHeaper consists of two parts:
-* `libcheaper.so`, a Linux library that produces traces from your C/C++ program
-* `cheaper.py`, a Python script that analyzes the traces.
+1. `libcheaper.so`, a Linux library that produces traces from your C/C++ program's memory management activity, and
+1. `cheaper.py`, a Python script that analyzes the traces.
+
+# Usage
 
 First, you run your program with the CHeaper library, as follows:
 
