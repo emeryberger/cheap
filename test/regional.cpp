@@ -12,12 +12,6 @@ void doIt() {
   for (int i = 0; i < num; i++) {
     delete [] arr[i];
   }
-  for (int i = 0; i < num; i++) {
-    arr[i] = new char[16];
-  }
-  for (int i = 0; i < num; i++) {
-    delete [] arr[i];
-  }
 }
 
 int

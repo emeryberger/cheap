@@ -66,10 +66,13 @@ class Cheaper:
                 dedup[key]["threads"] = dedup[key]["threads"].union(item["threads"])
                 # Recomputing region score = tricky...
                 # For now, use weighted average
-                dedup[key]["region_score"] = (
-                    dedup[key]["allocs"] * dedup[key]["region_score"]
-                    + item["allocs"] * item["region_score"]
-                ) / (dedup[key]["allocs"] + item["allocs"])
+                if dedup[key]["allocs"] + item["allocs"] > 0:
+                    dedup[key]["region_score"] = (
+                        dedup[key]["allocs"] * dedup[key]["region_score"]
+                        + item["allocs"] * item["region_score"]
+                    ) / (dedup[key]["allocs"] + item["allocs"])
+                else:
+                    dedup[key]["region_score"] = 0
             else:
                 dedup[key] = item
         analyzed = dedup.values()
