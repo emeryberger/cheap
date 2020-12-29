@@ -1,8 +1,6 @@
 #include <assert.h>
 #include "HJM_type.h"
 
-#define CHEAP_MEMORY 1
-
 #include <cstring>
 
 FTYPE RanUnif( long *s );

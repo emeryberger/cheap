@@ -4,6 +4,12 @@ INCLUDE =
 
 EXEC = swaptions 
 
+ifdef cheap
+  DEF := $(DEF) -DCHEAP_MEMORY=1
+else
+  DEF := $(DEF) -DCHEAP_MEMORY=0
+endif
+
 ifdef version
   ifeq "$(version)" "pthreads" 
     DEF := $(DEF) -DENABLE_THREADS
@@ -21,7 +27,7 @@ OBJS= CumNormalInv.o MaxFunction.o RanUnif.o nr_routines.o icdf.o \
 
 all: $(EXEC)
 
-CXXFLAGS += -g -O3 -DNDEBUG
+CXXFLAGS += -g -O3 -DNDEBUG -std=c++11
 
 $(EXEC): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEF) $(OBJS) $(INCLUDE) $(LIBS) -o $(EXEC)
