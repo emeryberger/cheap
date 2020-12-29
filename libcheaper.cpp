@@ -84,6 +84,7 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
 }
 
 static std::atomic<bool> firstDone{false};
+static std::atomic_flag entryLock = ATOMIC_FLAG_INIT;
 
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
@@ -109,6 +110,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
     return getTheCustomHeap().malloc(sz);
   }
+  while (entryLock.test_and_set()) {}
   if (!firstDone) {
     // First time: start the JSON.
     busy = true;
@@ -122,6 +124,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     read(fd, fname, 256);
     // Strip off trailing carriage return.
     fname[strlen(fname)-1] = '\0';
+    while (entryLock.test_and_set()) {}
     tprintf::tprintf("{ \"executable\" : \"@\",\n", fname);
     tprintf::tprintf("  \"trace\" : [\n{\n");
 #else
@@ -138,6 +141,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   tprintf::tprintf(
       "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
       xxmalloc_usable_size(ptr), ptr, tid);
+  entryLock.clear();
   return ptr;
 }
 
@@ -146,6 +150,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
     getTheCustomHeap().free(ptr);
     return;
   }
+  while (entryLock.test_and_set()) {}
   if (!firstDone) {
     tprintf::tprintf("[\n{\n  \"action\": \"F\",\n  \"stack\": [");
     firstDone = true;
@@ -157,6 +162,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   tprintf::tprintf(
       "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
       xxmalloc_usable_size(ptr), ptr, tid);
+  entryLock.clear();
   getTheCustomHeap().free(ptr);
 }
 
