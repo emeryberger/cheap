@@ -103,14 +103,7 @@ static void printStack() {
   getTheCustomHeap().free(syms);
 }
 
-extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
-  // Prevent loop due to internal call by backtrace_symbols
-  // and omit any records once we have "ended" to prevent
-  // corrupting the JSON output.
-  if (busy || WeAreOuttaHere::weAreOut) {
-    return getTheCustomHeap().malloc(sz);
-  }
-  while (entryLock.test_and_set()) {}
+static void printProlog() {
   if (!firstDone) {
     // First time: start the JSON.
     busy = true;
@@ -135,6 +128,17 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   } else {
     tprintf::tprintf(",{\n  \"action\": \"M\",\n  \"stack\": [");
   }
+}
+
+extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
+  // Prevent loop due to internal call by backtrace_symbols
+  // and omit any records once we have "ended" to prevent
+  // corrupting the JSON output.
+  if (busy || WeAreOuttaHere::weAreOut) {
+    return getTheCustomHeap().malloc(sz);
+  }
+  while (entryLock.test_and_set()) {}
+  printProlog();
   printStack();
   void *ptr = getTheCustomHeap().malloc(sz);
   auto tid = gettid();
@@ -171,7 +175,16 @@ extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
-  return getTheCustomHeap().memalign(alignment, sz);
+  while (entryLock.test_and_set()) {}
+  printProlog();
+  printStack();
+  void *ptr = getTheCustomHeap().memalign(alignment, sz);
+  auto tid = gettid();
+  tprintf::tprintf(
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
+      xxmalloc_usable_size(ptr), ptr, tid);
+  entryLock.clear();
+  return ptr;
 }
 
 extern "C" ATTRIBUTE_EXPORT void xxmalloc_lock() { getTheCustomHeap().lock(); }
