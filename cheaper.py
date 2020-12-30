@@ -14,6 +14,7 @@ class Cheaper:
 
     # For measuring page-level fragmentation
     __pagesize = 4096
+    stack_info = {}
 
     @staticmethod
     def parse():
@@ -52,33 +53,15 @@ class Cheaper:
             file_contents = f.read()
         x = orjson.loads(file_contents)
         trace = x["trace"]
-        analyzed = Cheaper.process_trace(
-            trace, progname, depth, threshold_mallocs, threshold_score
-        )
-        # Remove duplicates
-        dedup = {}
-        for item in analyzed:
-            key = hash(str(item["stack"]))
-            if key in dedup:
-                # Merge duplicate stacks
-                dedup[key]["allocs"] += item["allocs"]
-                dedup[key]["sizes"] = dedup[key]["sizes"].union(item["sizes"])
-                dedup[key]["threads"] = dedup[key]["threads"].union(item["threads"])
-                # Recomputing region score = tricky...
-                # For now, use weighted average
-                if dedup[key]["allocs"] + item["allocs"] > 0:
-                    dedup[key]["region_score"] = (
-                        dedup[key]["allocs"] * dedup[key]["region_score"]
-                        + item["allocs"] * item["region_score"]
-                    ) / (dedup[key]["allocs"] + item["allocs"])
-                else:
-                    dedup[key]["region_score"] = 0
-            else:
-                dedup[key] = item
-        analyzed = dedup.values()
-        # Sort in reverse order by region score * number of allocations
+        analyzed = []
+        for d in range(1,depth):
+            a = Cheaper.process_trace(
+                trace, progname, d, threshold_mallocs, threshold_score
+            )
+            analyzed += a
+        # Sort in reverse order by region score * number of allocations * stack length
         analyzed = sorted(
-            analyzed, key=lambda a: a["region_score"] * a["allocs"], reverse=True
+            analyzed, key=lambda a: a["region_score"] * a["allocs"] * len(a["stack"]), reverse=True
         )
         for item in analyzed:
             for stk in item["stack"]:
@@ -203,31 +186,34 @@ class Cheaper:
     @staticmethod
     def process_trace(trace, progname, depth, threshold_mallocs, threshold_score):
         stack_series = defaultdict(list)
-        stack_info = {}
 
         # Convert each stack frame into a name and line number
         for i in trace:
             for stkaddr in i["stack"][-depth:]:
-                if stkaddr not in stack_info:
+                if stkaddr not in Cheaper.stack_info:
                     result = subprocess.run(
                         ["addr2line", hex(stkaddr), "-C", "-e", progname],
                         stdout=subprocess.PIPE,
                     )
-                    stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
+                    Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
+                    if "??" in Cheaper.stack_info[stkaddr]:
+                        Cheaper.stack_info[stkaddr] = "BAD"
 
         # Separate each trace by its complete stack signature.
         for i in trace:
-            stk = [stack_info[k] for k in i["stack"][-depth:]]  # [skip:depth+skip]]
+            stk = [Cheaper.stack_info[k] for k in i["stack"][-depth:]]  # [skip:depth+skip]]
+            stk = list(filter(lambda s: s != "BAD", stk))
+            if len(stk) == 0:
+                continue
             stkstr = str(stk)
             stack_series[stkstr].append(i)
 
         # Iterate through each call site.
         analyzed = []
-        for d in range(0, depth):
-            for k in stack_series:
-                analyzed += Cheaper.analyze(
-                    stack_series[k], k, progname, d, threshold_mallocs, threshold_score
-                )
+        for k in stack_series:
+            analyzed += Cheaper.analyze(
+                stack_series[k], k, progname, depth, threshold_mallocs, threshold_score
+            )
         return analyzed
 
 
