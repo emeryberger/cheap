@@ -24,7 +24,7 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-const auto MAX_STACK_LENGTH = 8; // 16384;
+static const auto MAX_STACK_LENGTH = 8; // 16384;
 
 #define gettid() (pthread_self())
 
@@ -40,17 +40,13 @@ class InitializeMe {
 public:
   InitializeMe() {
     if (!_isInitialized) {
-#if 1
       // invoke backtrace so it resolves symbols now
-#if 1 // defined(__linux__)
       volatile void *dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
-#endif
       void *callstack[4];
       auto frames = backtrace(callstack, 4);
-#endif
       auto output_file =
-          fopen("cheaper.out", "w+"); // O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
-      tprintf::FD = fileno(output_file);
+          open("cheaper.out", O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+      tprintf::FD = output_file;
       _isInitialized = true;
     }
   }
@@ -66,17 +62,35 @@ CustomHeapType &getTheCustomHeap() {
   return thang;
 }
 
+static std::atomic_flag entryLock = ATOMIC_FLAG_INIT;
+
+#define USE_LOCKS 0
+
+#if USE_LOCKS
+static void lockme() {
+  while (entryLock.test_and_set()) {
+  }
+}
+static void unlockme() { entryLock.clear(); }
+#else
+static void lockme() {}
+static void unlockme() {}
+#endif
+
 // Close the JSON when we exit.
 class WeAreOuttaHere {
 public:
   ~WeAreOuttaHere() {
-    tprintf::tprintf("] }\n");
     weAreOut = true;
+    lockme();
+    tprintf::tprintf("] }\n");
+    syncfs(tprintf::FD);
+    unlockme();
   }
   static std::atomic<bool> weAreOut;
 };
 
-WeAreOuttaHere bahbye;
+static WeAreOuttaHere bahbye;
 std::atomic<bool> WeAreOuttaHere::weAreOut{false};
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
@@ -84,7 +98,6 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
 }
 
 static std::atomic<bool> firstDone{false};
-static std::atomic_flag entryLock = ATOMIC_FLAG_INIT;
 
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
@@ -109,20 +122,7 @@ static void printProlog() {
     busy = true;
     static InitializeMe init;
     busy = false;
-#if 0
-    // Get the executable name.
-    char fname[256];
-    // Linux only
-    int fd = open("/proc/self/comm", O_RDONLY);
-    read(fd, fname, 256);
-    // Strip off trailing carriage return.
-    fname[strlen(fname)-1] = '\0';
-    while (entryLock.test_and_set()) {}
-    tprintf::tprintf("{ \"executable\" : \"@\",\n", fname);
-    tprintf::tprintf("  \"trace\" : [\n{\n");
-#else
     tprintf::tprintf("{ \"trace\" : [\n{\n");
-#endif
     tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
     firstDone = true;
   } else {
@@ -137,24 +137,31 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
     return getTheCustomHeap().malloc(sz);
   }
-  while (entryLock.test_and_set()) {}
+  busy = true;
+  void *ptr = getTheCustomHeap().malloc(sz);
+  size_t real_sz = xxmalloc_usable_size(ptr);
+  busy = false;
+  auto tid = gettid();
+  lockme();
   printProlog();
   printStack();
-  void *ptr = getTheCustomHeap().malloc(sz);
-  auto tid = gettid();
   tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
-      xxmalloc_usable_size(ptr), ptr, tid);
-  entryLock.clear();
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
+      ptr, tid);
+  unlockme();
   return ptr;
 }
 
 extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   if (busy || WeAreOuttaHere::weAreOut) {
     getTheCustomHeap().free(ptr);
-    return;
   }
-  while (entryLock.test_and_set()) {}
+  auto tid = gettid();
+  busy = true;
+  size_t real_sz = xxmalloc_usable_size(ptr);
+  getTheCustomHeap().free(ptr);
+  busy = false;
+  lockme();
   if (!firstDone) {
     tprintf::tprintf("[\n{\n  \"action\": \"F\",\n  \"stack\": [");
     firstDone = true;
@@ -162,12 +169,10 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
     tprintf::tprintf(",{\n  \"action\": \"F\",\n  \"stack\": [");
   }
   printStack();
-  auto tid = gettid();
   tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
-      xxmalloc_usable_size(ptr), ptr, tid);
-  entryLock.clear();
-  getTheCustomHeap().free(ptr);
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
+      ptr, tid);
+  unlockme();
 }
 
 extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
@@ -175,15 +180,21 @@ extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
-  while (entryLock.test_and_set()) {}
+  if (busy || WeAreOuttaHere::weAreOut) {
+    return getTheCustomHeap().memalign(alignment, sz);
+  }
+  busy = true;
+  void *ptr = getTheCustomHeap().memalign(alignment, sz);
+  auto real_sz = xxmalloc_usable_size(ptr);
+  busy = false;
+  auto tid = gettid();
+  lockme();
   printProlog();
   printStack();
-  void *ptr = getTheCustomHeap().memalign(alignment, sz);
-  auto tid = gettid();
   tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n",
-      xxmalloc_usable_size(ptr), ptr, tid);
-  entryLock.clear();
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
+      ptr, tid);
+  unlockme();
   return ptr;
 }
 
