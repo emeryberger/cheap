@@ -54,14 +54,16 @@ class Cheaper:
         x = orjson.loads(file_contents)
         trace = x["trace"]
         analyzed = []
-        for d in range(1,depth):
+        for d in range(1, depth):
             a = Cheaper.process_trace(
                 trace, progname, d, threshold_mallocs, threshold_score
             )
             analyzed += a
         # Sort in reverse order by region score * number of allocations * stack length
         analyzed = sorted(
-            analyzed, key=lambda a: a["region_score"] * a["allocs"] * len(a["stack"]), reverse=True
+            analyzed,
+            key=lambda a: a["region_score"] * a["allocs"] * len(a["stack"]),
+            reverse=True,
         )
         for item in analyzed:
             for stk in item["stack"]:
@@ -201,7 +203,9 @@ class Cheaper:
 
         # Separate each trace by its complete stack signature.
         for i in trace:
-            stk = [Cheaper.stack_info[k] for k in i["stack"][-depth:]]  # [skip:depth+skip]]
+            stk = [
+                Cheaper.stack_info[k] for k in i["stack"][-depth:]
+            ]  # [skip:depth+skip]]
             stk = list(filter(lambda s: s != "BAD", stk))
             if len(stk) == 0:
                 continue
