@@ -55,7 +55,7 @@ private:
   std::atomic<bool> _isInitialized{false};
 };
 
-static std::atomic<bool> busy{false};
+static std::atomic<int> busy{0};
 
 CustomHeapType &getTheCustomHeap() {
   static CustomHeapType thang;
@@ -84,7 +84,7 @@ public:
     weAreOut = true;
     lockme();
     tprintf::tprintf("] }\n");
-    syncfs(tprintf::FD);
+    fsync(tprintf::FD);
     unlockme();
   }
   static std::atomic<bool> weAreOut;
@@ -102,10 +102,10 @@ static std::atomic<bool> firstDone{false};
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
   char buf[256 * MAX_STACK_LENGTH];
-  busy = true;
+  busy++;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   char **syms = backtrace_symbols(callstack, nframes);
-  busy = false;
+  busy--;
   char *b = buf;
   // JSON doesn't allow trailing commas at the end,
   // which is stupid, but we have to deal with it.
@@ -119,9 +119,9 @@ static void printStack() {
 static void printProlog() {
   if (!firstDone) {
     // First time: start the JSON.
-    busy = true;
+    busy++;
     static InitializeMe init;
-    busy = false;
+    busy--;
     tprintf::tprintf("{ \"trace\" : [\n{\n");
     tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
     firstDone = true;
@@ -137,10 +137,10 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
     return getTheCustomHeap().malloc(sz);
   }
-  busy = true;
+  busy++;
   void *ptr = getTheCustomHeap().malloc(sz);
   size_t real_sz = xxmalloc_usable_size(ptr);
-  busy = false;
+  busy--;
   auto tid = gettid();
   lockme();
   printProlog();
@@ -155,12 +155,13 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
 extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   if (busy || WeAreOuttaHere::weAreOut) {
     getTheCustomHeap().free(ptr);
+    return;
   }
   auto tid = gettid();
-  busy = true;
+  busy++;
   size_t real_sz = xxmalloc_usable_size(ptr);
   getTheCustomHeap().free(ptr);
-  busy = false;
+  busy--;
   lockme();
   if (!firstDone) {
     tprintf::tprintf("[\n{\n  \"action\": \"F\",\n  \"stack\": [");
@@ -183,10 +184,10 @@ extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
   if (busy || WeAreOuttaHere::weAreOut) {
     return getTheCustomHeap().memalign(alignment, sz);
   }
-  busy = true;
+  busy++;
   void *ptr = getTheCustomHeap().memalign(alignment, sz);
   auto real_sz = xxmalloc_usable_size(ptr);
-  busy = false;
+  busy--;
   auto tid = gettid();
   lockme();
   printProlog();
