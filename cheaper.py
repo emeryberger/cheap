@@ -1,6 +1,11 @@
 """cheaper.py: identifies where to apply custom allocators"""
 
-import orjson
+try:
+    import orjson
+    jsonlib = orjson
+except BaseException:
+    import json
+    jsonlib = json
 import math
 import os
 import argparse
@@ -51,7 +56,7 @@ class Cheaper:
     def __init__(self, progname, depth, threshold_mallocs, threshold_score):
         with open("cheaper.out", "r") as f:
             file_contents = f.read()
-        x = orjson.loads(file_contents)
+        x = jsonlib.loads(file_contents)
         trace = x["trace"]
         analyzed = []
         for d in range(1, depth):
@@ -188,15 +193,23 @@ class Cheaper:
     @staticmethod
     def process_trace(trace, progname, depth, threshold_mallocs, threshold_score):
         stack_series = defaultdict(list)
-
+        platform = sys.platform
+        
         # Convert each stack frame into a name and line number
         for i in trace:
             for stkaddr in i["stack"][-depth:]:
                 if stkaddr not in Cheaper.stack_info:
-                    result = subprocess.run(
-                        ["addr2line", hex(stkaddr), "-C", "-e", progname],
-                        stdout=subprocess.PIPE,
-                    )
+                    if platform == "darwin":
+                        result = subprocess.run(
+                            ["atos", "-o", progname, hex(stkaddr)],
+                            stdout=subprocess.PIPE,
+                        )
+                        print(result.stdout.decode("utf-8").strip())
+                    else:
+                        result = subprocess.run(
+                            ["addr2line", hex(stkaddr), "-C", "-e", progname],
+                            stdout=subprocess.PIPE,
+                        )
                     Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
                     if "??" in Cheaper.stack_info[stkaddr]:
                         Cheaper.stack_info[stkaddr] = "BAD"
