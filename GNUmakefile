@@ -1,6 +1,15 @@
-LIBNAME = cheaper
 PYTHON = python3
-SOURCES = libcheaper.cpp
+SOURCES = libcheaper.cpp libcheapen.cpp
+LIBNAME = cheaper
+
+all: cheaper
+
+cheaper:
+	make LIBNAME=cheaper
+
+cheapen:
+	make LIBNAME=cheapen
+
 include heaplayers-make.mk
 
 .PHONY: format test
