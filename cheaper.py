@@ -30,8 +30,7 @@ class Cheaper:
         parser = argparse.ArgumentParser(
             prog="cheaper",
             description=usage,
-            formatter_class=argparse.RawTextHelpFormatter,
-            allow_abbrev=False,
+            formatter_class=argparse.RawTextHelpFormatter
         )
         parser.add_argument("--progname", help="path to executable", required=True)
         parser.add_argument(
@@ -59,6 +58,7 @@ class Cheaper:
         x = jsonlib.loads(file_contents)
         trace = x["trace"]
         analyzed = []
+        Cheaper.resolve_addresses(trace, progname, depth)
         for d in range(1, depth):
             a = Cheaper.process_trace(
                 trace, progname, d, threshold_mallocs, threshold_score
@@ -80,6 +80,29 @@ class Cheaper:
             print("threads = ", item["threads"])
             print("=====")
 
+
+    @staticmethod
+    def resolve_addresses(trace, progname, depth):
+        """Convert each stack frame into a name and line number"""
+        platform = sys.platform
+        for i in trace:
+            for stkaddr in i["stack"][-depth:]:
+                if stkaddr not in Cheaper.stack_info:
+                    if platform == "darwin":
+                        result = subprocess.run(
+                            ["atos", "-o", progname, hex(stkaddr)],
+                            stdout=subprocess.PIPE,
+                        )
+                        print(result.stdout.decode("utf-8").strip())
+                    else:
+                        result = subprocess.run(
+                            ["addr2line", hex(stkaddr), "-C", "-e", progname],
+                            stdout=subprocess.PIPE,
+                        )
+                    Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
+                    if "??" in Cheaper.stack_info[stkaddr]:
+                        Cheaper.stack_info[stkaddr] = "BAD"
+        
     @staticmethod
     def utilization(allocs, n):
         """Returns the page-level fragmentation of the sequence of allocs up to the nth item."""
@@ -193,27 +216,6 @@ class Cheaper:
     @staticmethod
     def process_trace(trace, progname, depth, threshold_mallocs, threshold_score):
         stack_series = defaultdict(list)
-        platform = sys.platform
-        
-        # Convert each stack frame into a name and line number
-        for i in trace:
-            for stkaddr in i["stack"][-depth:]:
-                if stkaddr not in Cheaper.stack_info:
-                    if platform == "darwin":
-                        result = subprocess.run(
-                            ["atos", "-o", progname, hex(stkaddr)],
-                            stdout=subprocess.PIPE,
-                        )
-                        print(result.stdout.decode("utf-8").strip())
-                    else:
-                        result = subprocess.run(
-                            ["addr2line", hex(stkaddr), "-C", "-e", progname],
-                            stdout=subprocess.PIPE,
-                        )
-                    Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
-                    if "??" in Cheaper.stack_info[stkaddr]:
-                        Cheaper.stack_info[stkaddr] = "BAD"
-
         # Separate each trace by its complete stack signature.
         for i in trace:
             stk = [
