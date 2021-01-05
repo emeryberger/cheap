@@ -2,9 +2,11 @@
 
 try:
     import orjson
+
     jsonlib = orjson
 except BaseException:
     import json
+
     jsonlib = json
 import math
 import os
@@ -30,7 +32,7 @@ class Cheaper:
         parser = argparse.ArgumentParser(
             prog="cheaper",
             description=usage,
-            formatter_class=argparse.RawTextHelpFormatter
+            formatter_class=argparse.RawTextHelpFormatter,
         )
         parser.add_argument("--progname", help="path to executable", required=True)
         parser.add_argument(
@@ -80,7 +82,6 @@ class Cheaper:
             print("threads = ", item["threads"])
             print("=====")
 
-
     @staticmethod
     def resolve_addresses(trace, progname, depth):
         """Convert each stack frame into a name and line number"""
@@ -102,7 +103,7 @@ class Cheaper:
                     Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
                     if "??" in Cheaper.stack_info[stkaddr]:
                         Cheaper.stack_info[stkaddr] = "BAD"
-        
+
     @staticmethod
     def utilization(allocs, n):
         """Returns the page-level fragmentation of the sequence of allocs up to the nth item."""
