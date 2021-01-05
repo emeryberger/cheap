@@ -1,22 +1,14 @@
-PYTHON = python3
-SOURCES = libcheaper.cpp libcheapen.cpp
-LIBNAME = cheaper
+SOURCES = libcheaper.cpp libcheapen.cpp cheapen.h
 
-all: cheaper
+.PHONY: all format test
 
-cheaper:
-	make LIBNAME=cheaper
-
-cheapen:
-	make LIBNAME=cheapen
-
-include heaplayers-make.mk
-
-.PHONY: format test
+all:
+	-make -f cheapen.mk
+	-make -f cheaper.mk
 
 format: $(SOURCES)
 	clang-format -i $(SOURCES)
 	black cheaper.py
 
-test:	$(SOURCES) test/regional.cpp
+test:  $(SOURCES) test/regional.cpp
 	clang++ -O3 -g -fno-inline test/regional.cpp
