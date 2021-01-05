@@ -39,11 +39,15 @@ CustomHeapType &getTheCustomHeap() {
 static thread_local bool in_region = false;
 static thread_local char *region_buffer = nullptr;
 static thread_local size_t region_size_remaining = 0;
+static thread_local bool all_aligned = false;  //  if true, no need to align sizes
+static thread_local bool all_same_size = false;//  if true, can cache a size to return from malloc_usable_size
 
-extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz, bool allAligned = false, bool allSameSize = false) {
   region_buffer = reinterpret_cast<char *>(buf);
   region_size_remaining = sz;
   in_region = true;
+  all_aligned = allAligned;
+  all_same_size = allSameSize;
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
@@ -60,10 +64,12 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
 extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   if (in_region) {
     // Enforce default alignment.
-    if (sz < alignof(max_align_t)) {
-      sz = alignof(max_align_t);
+    if (!all_aligned) {
+      if (sz < alignof(max_align_t)) {
+	sz = alignof(max_align_t);
+      }
+      sz = (sz + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1);
     }
-    sz = (sz + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1);
     if (region_size_remaining < sz) {
       return nullptr;
     }
