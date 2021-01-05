@@ -1,5 +1,5 @@
 PREFIX := ${PARSECDIR}/pkgs/apps/swaptions/inst/${PARSECPLAT}
-DEF =
+DEF = -I../..
 INCLUDE =
 
 EXEC = swaptions 
