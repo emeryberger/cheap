@@ -18,7 +18,7 @@ public:
     }
   ~cheapen_region() {
     region_end();
-    delete _buf;
+    delete [] _buf;
   }
 private:
   char * _buf;
