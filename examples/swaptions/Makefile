@@ -6,6 +6,7 @@ EXEC = swaptions
 
 ifdef cheap
   DEF := $(DEF) -DCHEAP_MEMORY=1
+  LIBS := $(LIBS) -L. -lcheapen
 else
   DEF := $(DEF) -DCHEAP_MEMORY=0
 endif

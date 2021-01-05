@@ -375,9 +375,7 @@ int Discount_Factors_Blocking(FTYPE *pdDiscountFactors,
 	FTYPE ddelt;			//HJM time-step length
 	ddelt = (FTYPE) (dYears/iN);
 
-#if !CHEAP_MEMORY
 	pdexpRes = dvector(0,(iN-1)*BLOCKSIZE-1);
-#endif
 	//precompute the exponientials
 	for (j=0; j<=(iN-1)*BLOCKSIZE-1; ++j){ pdexpRes[j] = -pdRatePath[j]*ddelt; }
 	for (j=0; j<=(iN-1)*BLOCKSIZE-1; ++j){ pdexpRes[j] = exp(pdexpRes[j]);  }
@@ -398,9 +396,7 @@ int Discount_Factors_Blocking(FTYPE *pdDiscountFactors,
 	  } // end Block loop
 	} 
 
-#if !CHEAP_MEMORY
 	free_dvector(pdexpRes, 0,(iN-1)*BLOCKSIZE-1);
-#endif
 	iSuccess = 1;
 	return iSuccess;
 }

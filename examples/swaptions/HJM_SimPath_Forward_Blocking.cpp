@@ -94,10 +94,8 @@ int HJM_SimPath_Forward_Blocking(FTYPE **ppdHJMPath,	//Matrix that stores genera
 	ddelt = (FTYPE)(dYears/iN);
 	sqrt_ddelt = sqrt(ddelt);
 
-#if !CHEAP_MEMORY
 	pdZ   = dmatrix(0, iFactors-1, 0, iN*BLOCKSIZE -1); //assigning memory
 	randZ = dmatrix(0, iFactors-1, 0, iN*BLOCKSIZE -1); //assigning memory
-#endif
 	
 	// =====================================================
 	// t=0 forward curve stored iN first row of ppdHJMPath
@@ -162,10 +160,8 @@ int HJM_SimPath_Forward_Blocking(FTYPE **ppdHJMPath,	//Matrix that stores genera
 	} // end Blocks
 	// -----------------------------------------------------
 
-#if !CHEAP_MEMORY
 	free_dmatrix(pdZ, 0, iFactors -1, 0, iN*BLOCKSIZE -1);
 	free_dmatrix(randZ, 0, iFactors -1, 0, iN*BLOCKSIZE -1);
-#endif
 	iSuccess = 1;
 	return iSuccess;
 }

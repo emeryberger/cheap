@@ -11,6 +11,9 @@
 #include "HJM.h"
 #include "HJM_type.h"
 
+extern "C" void region_begin(void *, size_t);
+extern "C" void region_end();
+
 int HJM_Swaption_Blocking(FTYPE *pdSwaptionPrice, //Output vector that will store simulation results in the form:
 			  //Swaption Price
 			  //Swaption Standard Error
@@ -146,21 +149,22 @@ int HJM_Swaption_Blocking(FTYPE *pdSwaptionPrice, //Output vector that will stor
   dSumSimSwaptionPrice = 0.0;
   dSumSquareSimSwaptionPrice = 0.0;
 
-  // CHEAP - hoisted allocations
-#if CHEAP_MEMORY
-  static thread_local FTYPE **pdZ   = dmatrix(0, iFactors-1, 0, iN*BLOCKSIZE -1); //assigning memory
-  static thread_local FTYPE **randZ = dmatrix(0, iFactors-1, 0, iN*BLOCKSIZE -1); //assigning memory
-  static thread_local FTYPE * pdexpRes = dvector(0, (iN-1)*BLOCKSIZE-1);
-#else
   FTYPE **pdZ;
   FTYPE **randZ;
   FTYPE * pdexpRes;
-#endif
+
+  char buf[1048576];
   
   //Simulations begin:
   for (l=0;l<=lTrials-1;l+=BLOCKSIZE) {
       //For each trial a new HJM Path is generated
+#if CHEAP_MEMORY
+    region_begin(buf, 1048576);
+#endif
     iSuccess = HJM_SimPath_Forward_Blocking(ppdHJMPath, iN, iFactors, dYears, pdForward, pdTotalDrift,ppdFactors, &iRndSeed, BLOCKSIZE, pdZ, randZ); /* GC: 51% of the time goes here */
+#if CHEAP_MEMORY
+    region_end();
+#endif
        if (iSuccess!=1)
 	return iSuccess;
       
