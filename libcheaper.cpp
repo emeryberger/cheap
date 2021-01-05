@@ -126,10 +126,10 @@ static bool printProlog(char action) {
     tprintf::tprintf("  \"action\": \"@\",\n  \"stack\": [", action);
     firstDone = true;
     return true;
-  } else { 
+  } else {
     tprintf::tprintf(",{\n  \"action\": \"@\",\n  \"stack\": [", action);
     return false;
-  }    
+  }
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
