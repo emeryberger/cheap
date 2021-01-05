@@ -35,9 +35,9 @@ CustomHeapType &getTheCustomHeap() {
   return thang;
 }
 
-static bool in_region = false;
-static char * region_buffer = nullptr;
-static size_t region_size_remaining = 0;
+static thread_local bool in_region = false;
+static thread_local char * region_buffer = nullptr;
+static thread_local size_t region_size_remaining = 0;
 
 extern "C" ATTRIBUTE_EXPORT void region_begin(void * buf, size_t sz) {
   region_buffer = reinterpret_cast<char *>(buf);
