@@ -1,7 +1,8 @@
 /*
   libcheapen.cpp
      enables easy use of regions
-   invoke `region_begin(buf, sz)` --> all subsequent `malloc`s use the buffer, `free`s are ignored
+   invoke `region_begin(buf, sz)` --> all subsequent `malloc`s use the buffer,
+  `free`s are ignored
    invoke `region_end()` --> back to normal `malloc`/`free` behavior
 */
 
@@ -36,10 +37,10 @@ CustomHeapType &getTheCustomHeap() {
 }
 
 static thread_local bool in_region = false;
-static thread_local char * region_buffer = nullptr;
+static thread_local char *region_buffer = nullptr;
 static thread_local size_t region_size_remaining = 0;
 
-extern "C" ATTRIBUTE_EXPORT void region_begin(void * buf, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz) {
   region_buffer = reinterpret_cast<char *>(buf);
   region_size_remaining = sz;
   in_region = true;
@@ -58,6 +59,11 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
 
 extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   if (in_region) {
+    // Enforce default alignment.
+    if (sz < alignof(max_align_t)) {
+      sz = alignof(max_align_t);
+    }
+    sz = (sz + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1);
     if (region_size_remaining < sz) {
       return nullptr;
     }
@@ -81,7 +87,10 @@ extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
 
 extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
   if (in_region) {
-    // FIXME: not yet implemented.
+    // Round up the region pointer to the required alignment.
+    const auto bufptr = reinterpret_cast<uintptr_t>(region_buffer);
+    region_buffer =
+        reinterpret_cast<char *>((bufptr + alignment - 1) & ~(alignment - 1));
     return xxmalloc(sz);
   }
   return getTheCustomHeap().memalign(alignment, sz);
