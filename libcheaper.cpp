@@ -24,7 +24,7 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-static const auto MAX_STACK_LENGTH = 8; // 16384;
+static const auto MAX_STACK_LENGTH = 16; // 16384;
 
 #define gettid() (pthread_self())
 
@@ -147,9 +147,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   lockme();
   printProlog('M');
   printStack();
-  tprintf::tprintf(
-      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
-      ptr, tid);
+  tprintf::tprintf("],\n \"size\" : @,\n \"reqsize\" : @,\n \"address\" : @,\n \"tid\" : @\n}\n", real_sz, sz, ptr, tid);
   unlockme();
   return ptr;
 }
@@ -161,6 +159,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   }
   auto tid = gettid();
   busy++;
+  // Note: this info is redundant (it will already be in the trace) and may be removed.
   size_t real_sz = getTheCustomHeap().getSize(ptr);
   getTheCustomHeap().free(ptr);
   busy--;
