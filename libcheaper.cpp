@@ -116,18 +116,20 @@ static void printStack() {
   getTheCustomHeap().free(syms);
 }
 
-static void printProlog() {
+static bool printProlog(char action) {
   if (!firstDone) {
     // First time: start the JSON.
     busy++;
     static InitializeMe init;
     busy--;
     tprintf::tprintf("{ \"trace\" : [\n{\n");
-    tprintf::tprintf("  \"action\": \"M\",\n  \"stack\": [");
+    tprintf::tprintf("  \"action\": \"@\",\n  \"stack\": [", action);
     firstDone = true;
-  } else {
-    tprintf::tprintf(",{\n  \"action\": \"M\",\n  \"stack\": [");
-  }
+    return true;
+  } else { 
+    tprintf::tprintf(",{\n  \"action\": \"@\",\n  \"stack\": [", action);
+    return false;
+  }    
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
@@ -139,11 +141,11 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
   }
   busy++;
   void *ptr = getTheCustomHeap().malloc(sz);
-  size_t real_sz = xxmalloc_usable_size(ptr);
+  size_t real_sz = getTheCustomHeap().getSize(ptr);
   busy--;
   auto tid = gettid();
   lockme();
-  printProlog();
+  printProlog('M');
   printStack();
   tprintf::tprintf(
       "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
@@ -159,7 +161,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   }
   auto tid = gettid();
   busy++;
-  size_t real_sz = xxmalloc_usable_size(ptr);
+  size_t real_sz = getTheCustomHeap().getSize(ptr);
   getTheCustomHeap().free(ptr);
   busy--;
   lockme();
@@ -186,11 +188,11 @@ extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
   }
   busy++;
   void *ptr = getTheCustomHeap().memalign(alignment, sz);
-  auto real_sz = xxmalloc_usable_size(ptr);
+  auto real_sz = getTheCustomHeap().getSize(ptr);
   busy--;
   auto tid = gettid();
   lockme();
-  printProlog();
+  printProlog('A');
   printStack();
   tprintf::tprintf(
       "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
