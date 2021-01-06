@@ -93,10 +93,6 @@ public:
 static WeAreOuttaHere bahbye;
 std::atomic<bool> WeAreOuttaHere::weAreOut{false};
 
-extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
-  return getTheCustomHeap().getSize(ptr);
-}
-
 static std::atomic<bool> firstDone{false};
 
 static void printStack() {
@@ -175,6 +171,27 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
       "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
       ptr, tid);
   unlockme();
+}
+
+extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
+  auto real_sz = getTheCustomHeap().getSize(ptr);
+  if (busy || WeAreOuttaHere::weAreOut) {
+    return real_sz;
+  }
+  auto tid = gettid();
+  lockme();
+  if (!firstDone) {
+    tprintf::tprintf("[\n{\n  \"action\": \"S\",\n  \"stack\": [");
+    firstDone = true;
+  } else {
+    tprintf::tprintf(",{\n  \"action\": \"S\",\n  \"stack\": [");
+  }
+  printStack();
+  tprintf::tprintf(
+      "],\n  \"size\" : @,\n  \"address\" : @,\n  \"tid\" : @\n}\n", real_sz,
+      ptr, tid);
+  unlockme();
+  return real_sz;
 }
 
 extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
