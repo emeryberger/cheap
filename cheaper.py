@@ -77,7 +77,11 @@ class Cheaper:
                 print(stk)
             print("-----")
             print("region score = ", item["region_score"])
+            print("peak footprint = ", item["peak_footprint"])
+            print("region footprint = ", item["nofree_footprint"])
             print("number of allocs = ", item["allocs"])
+            print("size taken = ", item["size_taken"])
+            print("all aligned = ", item["all_aligned"])
             print("sizes = ", item["sizes"])
             print("threads = ", item["threads"])
             print("=====")
@@ -155,11 +159,20 @@ class Cheaper:
         mallocs = set()
         num_allocs = 0
         utilization = 0
+        size_taken = False # true iff size was invoked
+        all_aligned = True # true iff all requests were properly aligned
         for (index, i) in enumerate(allocs):
             sizes.add(i["size"])
             size_histogram[i["size"]] += 1
             tids.add(i["tid"])
-            if i["action"] == "M":
+            if i["action"] == "S":
+                size_taken = True
+                continue
+            elif i["action"] == "M":
+                if i["reqsize"] == 0 or i["reqsize"] % 8 != 0:
+                    if all_aligned:
+                        print("first reqsize not aligned: " + str(i["reqsize"]))
+                    all_aligned = False
                 num_allocs += 1
                 # Compute actual footprint (taking into account mallocs and frees).
                 actual_footprint += i["size"]
@@ -210,6 +223,8 @@ class Cheaper:
                 "size_entropy": normalized_entropy,
                 "peak_footprint": peak_footprint,
                 "nofree_footprint": nofree_footprint,
+                "size_taken" : size_taken,
+                "all_aligned" : all_aligned
             }
             analyzed_list.append(output)
         return analyzed_list
