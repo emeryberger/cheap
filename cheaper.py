@@ -61,7 +61,7 @@ class Cheaper:
         trace = x["trace"]
         analyzed = []
         Cheaper.resolve_addresses(trace, progname, depth)
-        for d in range(1, depth):
+        for d in reversed(range(1, depth)):
             a = Cheaper.process_trace(
                 trace, progname, d, threshold_mallocs, threshold_score
             )
@@ -74,7 +74,8 @@ class Cheaper:
         )
         for item in analyzed:
             for stk in item["stack"]:
-                print(stk)
+                if "CHEAPERBAD" not in stk:
+                    print(stk)
             print("-----")
             print("region score = ", item["region_score"])
             print("peak footprint = ", item["peak_footprint"])
@@ -98,15 +99,16 @@ class Cheaper:
                             ["atos", "-o", progname, hex(stkaddr)],
                             stdout=subprocess.PIPE,
                         )
-                        print(result.stdout.decode("utf-8").strip())
                     else:
                         result = subprocess.run(
                             ["addr2line", hex(stkaddr), "-C", "-e", progname],
                             stdout=subprocess.PIPE,
                         )
                     Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
-                    if "??" in Cheaper.stack_info[stkaddr]:
-                        Cheaper.stack_info[stkaddr] = "BAD"
+                    # If it failed to resolve symbols, use the address instead
+                    if "?" in Cheaper.stack_info[stkaddr]:
+                        Cheaper.stack_info[stkaddr] = "CHEAPERBAD " + str(hex(stkaddr))
+                        
 
     @staticmethod
     def utilization(allocs, n):
@@ -162,16 +164,19 @@ class Cheaper:
         size_taken = False  # true iff size was invoked
         all_aligned = True  # true iff all requests were properly aligned
         for (index, i) in enumerate(allocs):
-            sizes.add(i["size"])
-            size_histogram[i["size"]] += 1
-            tids.add(i["tid"])
+            # If a size was taken, record this fact and continue.
             if i["action"] == "S":
                 size_taken = True
                 continue
-            elif i["action"] == "M":
+            if len(i["stack"]) != depth:
+                continue
+            sizes.add(i["size"])
+            size_histogram[i["size"]] += 1
+            tids.add(i["tid"])
+            if i["action"] == "M":
                 if i["reqsize"] == 0 or i["reqsize"] % 8 != 0:
                     if all_aligned:
-                        print("first reqsize not aligned: " + str(i["reqsize"]))
+                        print("FIXME first reqsize not aligned: " + str(i["reqsize"]))
                     all_aligned = False
                 num_allocs += 1
                 # Compute actual footprint (taking into account mallocs and frees).
@@ -198,16 +203,6 @@ class Cheaper:
                     # print(str(i["address"]) + " not found")
         # Recompute utilization
         # frag = Cheaper.utilization(allocs, peak_footprint_index)
-        # Compute entropy of sizes
-        total = len(allocs)
-        normalized_entropy = -sum(
-            [
-                float(size_histogram[c])
-                / total
-                * math.log2(float(size_histogram[c]) / total)
-                for c in size_histogram
-            ]
-        ) / len(size_histogram)
         # Compute region_score (0 is worst, 1 is best - for region replacement).
         region_score = 0
         if nofree_footprint != 0:
@@ -220,7 +215,6 @@ class Cheaper:
                 "region_score": region_score,
                 "threads": tids,
                 "sizes": sizes,
-                "size_entropy": normalized_entropy,
                 "peak_footprint": peak_footprint,
                 "nofree_footprint": nofree_footprint,
                 "size_taken": size_taken,
@@ -237,8 +231,11 @@ class Cheaper:
             stk = [
                 Cheaper.stack_info[k] for k in i["stack"][-depth:]
             ]  # [skip:depth+skip]]
-            stk = list(filter(lambda s: s != "BAD", stk))
-            if len(stk) == 0:
+            # print(stk)
+            # stk = list(filter(lambda s: s != "BAD", stk))
+            #if len(stk) == 0:
+            #    continue
+            if len(stk) != depth:
                 continue
             stkstr = str(stk)
             stack_series[stkstr].append(i)
