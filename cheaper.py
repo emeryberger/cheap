@@ -159,8 +159,8 @@ class Cheaper:
         mallocs = set()
         num_allocs = 0
         utilization = 0
-        size_taken = False # true iff size was invoked
-        all_aligned = True # true iff all requests were properly aligned
+        size_taken = False  # true iff size was invoked
+        all_aligned = True  # true iff all requests were properly aligned
         for (index, i) in enumerate(allocs):
             sizes.add(i["size"])
             size_histogram[i["size"]] += 1
@@ -223,8 +223,8 @@ class Cheaper:
                 "size_entropy": normalized_entropy,
                 "peak_footprint": peak_footprint,
                 "nofree_footprint": nofree_footprint,
-                "size_taken" : size_taken,
-                "all_aligned" : all_aligned
+                "size_taken": size_taken,
+                "all_aligned": all_aligned,
             }
             analyzed_list.append(output)
         return analyzed_list

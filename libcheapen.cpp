@@ -38,18 +38,21 @@ CustomHeapType &getTheCustomHeap() {
 
 class cheap_info {
 public:
-  bool in_region { false };
-  char *region_buffer { nullptr };
-  size_t region_size_remaining { 0 };
-  bool all_aligned { false };  //  if true, no need to align sizes
-  bool all_nonzero { false };  //  if true, no zero size requests
-  bool size_taken { true }; // if true, need metadata for size
+  bool in_region{false};
+  char *region_buffer{nullptr};
+  size_t region_size_remaining{0};
+  bool all_aligned{false}; //  if true, no need to align sizes
+  bool all_nonzero{false}; //  if true, no zero size requests
+  bool size_taken{true};   // if true, need metadata for size
 };
 
 static thread_local cheap_info info;
 
-extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz, bool allAligned = false, bool allNonZero = false, bool sizeTaken = true) {
-  auto& ci = info;
+extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
+                                              bool allAligned = false,
+                                              bool allNonZero = false,
+                                              bool sizeTaken = true) {
+  auto &ci = info;
   ci.region_buffer = reinterpret_cast<char *>(buf);
   ci.region_size_remaining = sz;
   ci.in_region = true;
@@ -59,7 +62,7 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz, bool allAlig
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
-  auto& ci = info;
+  auto &ci = info;
   ci.in_region = false;
   ci.region_buffer = nullptr;
   ci.region_size_remaining = 0;
@@ -71,14 +74,14 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
-  auto& ci = info;
+  auto &ci = info;
   if (ci.in_region) {
     // Enforce default alignment.
     if (!ci.all_aligned) {
       if (!ci.all_nonzero) {
-	if (sz < alignof(max_align_t)) {
-	  sz = alignof(max_align_t);
-	}
+        if (sz < alignof(max_align_t)) {
+          sz = alignof(max_align_t);
+        }
       }
       sz = (sz + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1);
     }
@@ -104,7 +107,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
 }
 
 extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
-  auto& ci = info;
+  auto &ci = info;
   if (ci.in_region) {
     // Round up the region pointer to the required alignment.
     auto bufptr = reinterpret_cast<uintptr_t>(ci.region_buffer);
