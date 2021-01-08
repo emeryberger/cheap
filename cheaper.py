@@ -52,6 +52,10 @@ class Cheaper:
             parser.print_help()
             sys.exit(-1)
 
+        if not os.path.isfile(args.progname):
+            print("File " + args.progname + " does not exist.")
+            sys.exit(-1)
+            
         return args
 
     def __init__(self, progname, depth, threshold_mallocs, threshold_score):
