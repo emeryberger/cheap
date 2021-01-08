@@ -1,14 +1,14 @@
 PREFIX := ${PARSECDIR}/pkgs/apps/swaptions/inst/${PARSECPLAT}
 DEF = -I../..
 INCLUDE =
-
+CXX = clang++
 EXEC = swaptions 
 
 ifdef cheap
-  DEF := $(DEF) -DCHEAP_MEMORY=1
-  LIBS := $(LIBS) -L. -lcheapen
+  DEF := $(DEF) -DCHEAPEN=1
+  LIBS := $(LIBS) -L../.. -lcheapen
 else
-  DEF := $(DEF) -DCHEAP_MEMORY=0
+  DEF := $(DEF) -DCHEAPEN=0
 endif
 
 ifdef version
@@ -28,7 +28,11 @@ OBJS= CumNormalInv.o MaxFunction.o RanUnif.o nr_routines.o icdf.o \
 
 all: $(EXEC)
 
+ifdef trace
+CXXFLAGS += -g -O0 -fno-inline-functions -DNDEBUG -std=c++11
+else
 CXXFLAGS += -g -O3 -DNDEBUG -std=c++11
+endif
 
 $(EXEC): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(DEF) $(OBJS) $(INCLUDE) $(LIBS) -o $(EXEC)

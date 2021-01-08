@@ -11,7 +11,7 @@
 #include "HJM.h"
 #include "HJM_type.h"
 
-#if CHEAP_MEMORY
+#if CHEAPEN
 #include "cheapen.h"
 #endif
 
@@ -157,7 +157,7 @@ int HJM_Swaption_Blocking(FTYPE *pdSwaptionPrice, //Output vector that will stor
   //Simulations begin:
   for (l=0;l<=lTrials-1;l+=BLOCKSIZE) {
       //For each trial a new HJM Path is generated
-#if CHEAP_MEMORY
+#if CHEAPEN
     cheapen_region<1048576> reg;
 #endif
     iSuccess = HJM_SimPath_Forward_Blocking(ppdHJMPath, iN, iFactors, dYears, pdForward, pdTotalDrift,ppdFactors, &iRndSeed, BLOCKSIZE, pdZ, randZ); /* GC: 51% of the time goes here */
