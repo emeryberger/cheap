@@ -97,19 +97,15 @@ static std::atomic<bool> firstDone{false};
 
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
-  char buf[256 * MAX_STACK_LENGTH];
   busy++;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
-  char **syms = backtrace_symbols(callstack, nframes);
   busy--;
-  char *b = buf;
   // JSON doesn't allow trailing commas at the end,
-  // which is stupid, but we have to deal with it.
+  // which is stupid, but we have to deal with it. 
   for (auto i = 0; i < nframes - 1; i++) {
-    tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
+   tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
   }
   tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1]);
-  getTheCustomHeap().free(syms);
 }
 
 static bool printProlog(char action) {
