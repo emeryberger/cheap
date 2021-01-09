@@ -1,4 +1,4 @@
-CPPFLAGS = -std=c++14 -g -fno-builtin-malloc -fvisibility=hidden -O3
+CPPFLAGS = -flto -std=c++14 -DNDEBUG -g -fno-builtin-malloc -fvisibility=hidden -O3
 # CPPFLAGS = -std=c++14 -rdynamic -g -funwind-tables -fasynchronous-unwind-tables -O3 -DNDEBUG -fno-builtin-malloc # -fvisibility=hidden
 CXX = clang++
 
