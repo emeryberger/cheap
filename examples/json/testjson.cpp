@@ -4,7 +4,7 @@
 #include <iostream>
 
 #if defined(CHEAPEN)
-#include "cheapen.h"
+#include "cheap.h"
 #endif
 
 #include "json.hpp"
@@ -27,10 +27,10 @@ void outputMe(nlohmann::json& j)
 int
 main()
 {
-  for (auto i = 0; i < 1; i++)
+  for (auto i = 0; i < 100; i++)
   {
 #if defined(CHEAPEN)
-    cheapen_region<256 * 1048576, false, true, false> reg;
+    cheap::cheap<256 * 1048576> reg (cheap::NONZERO);
 #endif
     parseMe();
   }
