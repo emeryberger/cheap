@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+const char output_filename[] = "cheaper.out";
+
 #include "common.hpp"
 #include "nextheap.hpp"
 #include "tprintf.h"
@@ -44,8 +46,9 @@ public:
       volatile void *dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
       void *callstack[4];
       auto frames = backtrace(callstack, 4);
+      unlink(output_filename);
       auto output_file =
-          open("cheaper.out", O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+          open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
       tprintf::FD = output_file;
       _isInitialized = true;
     }
