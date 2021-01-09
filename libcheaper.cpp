@@ -104,9 +104,9 @@ static void printStack() {
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
   busy--;
   // JSON doesn't allow trailing commas at the end,
-  // which is stupid, but we have to deal with it. 
+  // which is stupid, but we have to deal with it.
   for (auto i = 0; i < nframes - 1; i++) {
-   tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
+    tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
   }
   tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1]);
 }

@@ -1,9 +1,12 @@
 /*
-  libcheapen.cpp
+  libcheap.cpp
      enables easy use of regions
    invoke `region_begin(buf, sz)` --> all subsequent `malloc`s use the buffer,
   `free`s are ignored
    invoke `region_end()` --> back to normal `malloc`/`free` behavior
+
+   see the C++ API in cheap.h
+
 */
 
 // currently experimental only!
@@ -59,6 +62,10 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
   ci.size_taken = sizeTaken;
+  if (ci.size_taken) {
+    // Can't currently use regions if size was taken.
+    ci.in_region = false;
+  }
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
@@ -69,7 +76,6 @@ extern "C" ATTRIBUTE_EXPORT void region_end() {
 }
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
-  // Technically unsafe in region mode...FIX ME
   return getTheCustomHeap().getSize(ptr);
 }
 
@@ -88,7 +94,6 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     if (ci.region_size_remaining < sz) {
       return nullptr;
     }
-    // FIXME handle sizes
     auto oldbuf = ci.region_buffer;
     ci.region_buffer += sz;
     ci.region_size_remaining -= sz;
