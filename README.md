@@ -34,7 +34,7 @@ For a complete list of options, type `python3 cheaper.py --help`.
 
 The result will be a sorted list of places where custom heaps can be used. The final line of each is a C++ line of code that can be placed directly in your program. An example might be:
 
-    `cheap::cheap<5436432> reg(cheap::NONZERO | cheap::SINGLE_THREADED);`
+    cheap::cheap<5436432> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
 
 Placing this line at the appropriate point in the program will redirect all subsequent allocations and frees to use the generated custom heap. Currently, the only custom heap option is a "region-style" allocator (a.k.a. "arena", "pool", or "monotonic resource").
 
