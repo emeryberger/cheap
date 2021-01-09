@@ -109,7 +109,7 @@ class Cheaper:
                 + str(item["nofree_footprint"])
                 + "> reg("
                 + " | ".join(flag_list)
-                + ")"
+                + ");"
             )
             print("=====")
 
