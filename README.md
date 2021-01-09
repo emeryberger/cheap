@@ -38,4 +38,4 @@ The result will be a sorted list of places where custom heaps can be used. The f
 
 Placing this line at the appropriate point in the program will redirect all subsequent allocations and frees to use the generated custom heap. Currently, the only custom heap option is a "region-style" allocator (a.k.a. "arena", "pool", or "monotonic resource").
 
-For an example, see the file `examples/json/testjson.cpp` (line 33).
+For an example, see the file [`examples/json/testjson.cpp` (line 33).](https://github.com/emeryberger/cheaper/blob/main/examples/json/testjson.cpp#L33)
