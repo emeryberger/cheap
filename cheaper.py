@@ -19,8 +19,11 @@ from textwrap import dedent
 
 class Cheaper:
 
+    __output_filename = "cheaper.out"
+    
     # For measuring page-level fragmentation
     __pagesize = 4096
+    
     stack_info = {}
 
     @staticmethod
@@ -54,6 +57,10 @@ class Cheaper:
 
         if not os.path.isfile(args.progname):
             print("File " + args.progname + " does not exist.")
+            sys.exit(-1)
+            
+        if not os.path.isfile(Cheaper.__output_filename):
+            print("File " + Cheaper.__output_filename + " does not exist.")
             sys.exit(-1)
             
         return args
@@ -147,10 +154,10 @@ class Cheaper:
     @staticmethod
     def analyze(allocs, stackstr, progname, depth, threshold_mallocs, threshold_score):
         """Analyze a trace of allocations and frees."""
-        analyzed_list = []
         if len(allocs) < int(threshold_mallocs):
             # Ignore call sites with too few mallocs
-            return analyzed_list
+            return []
+        analyzed_list = []
         # The set of sizes of allocated objects.
         sizes = set()
         # A histogram of the # of objects allocated of each size.
@@ -178,7 +185,7 @@ class Cheaper:
             size_histogram[i["size"]] += 1
             tids.add(i["tid"])
             if i["action"] == "M":
-                if i["reqsize"] == 0 or i["reqsize"] % 8 != 0:
+                if i["reqsize"] == 0 or i["reqsize"] % 16 != 0:
                     if all_aligned:
                         print("FIXME first reqsize not aligned: " + str(i["reqsize"]))
                     all_aligned = False

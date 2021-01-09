@@ -27,7 +27,7 @@ void outputMe(nlohmann::json& j)
 int
 main()
 {
-  for (auto i = 0; i < 100; i++)
+  for (auto i = 0; i < 1; i++)
   {
 #if defined(CHEAPEN)
     cheapen_region<256 * 1048576, false, true, false> reg;

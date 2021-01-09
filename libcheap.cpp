@@ -58,7 +58,7 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
   ci.in_region = true;
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
-  // FIXME handle sizes
+  ci.size_taken = sizeTaken;
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
@@ -88,6 +88,7 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     if (ci.region_size_remaining < sz) {
       return nullptr;
     }
+    // FIXME handle sizes
     auto oldbuf = ci.region_buffer;
     ci.region_buffer += sz;
     ci.region_size_remaining -= sz;

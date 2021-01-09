@@ -1,6 +1,6 @@
 PYTHON = python3
-SOURCES = libcheaper.cpp libcheapen.cpp cheapen.h
-LIBNAME = cheapen
+SOURCES = libcheap.cpp cheap.h
+LIBNAME = cheap
 
 include heaplayers-make.mk
 

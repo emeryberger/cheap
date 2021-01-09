@@ -1,9 +1,9 @@
-SOURCES = libcheaper.cpp libcheapen.cpp cheapen.h
+SOURCES = libcheaper.cpp libcheap.cpp cheap.h
 
 .PHONY: all format test
 
 all:
-	-make -f cheapen.mk
+	-make -f cheap.mk
 	-make -f cheaper.mk
 
 format: $(SOURCES)
