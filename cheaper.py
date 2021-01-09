@@ -76,10 +76,10 @@ class Cheaper:
                 x["trace"], progname, d, threshold_mallocs, threshold_score
             )
             analyzed += a
-        # Sort in reverse order by region score * number of allocations * stack length
+        # Sort in reverse order by region score * number of allocations + stack length
         analyzed = sorted(
             analyzed,
-            key=lambda a: a["nofree_footprint"] / a["allocs"] + len(a["stack"]),
+            key=lambda a: a["region_score"] * a["allocs"] + len(a["stack"]),
             reverse=True,
         )
         for item in analyzed:
@@ -95,6 +95,16 @@ class Cheaper:
             print("all aligned = ", item["all_aligned"])
             print("sizes = ", item["sizes"])
             print("threads = ", item["threads"])
+            flag_list = []
+            if item["size_taken"]:
+                flag_list.append("cheap::SIZE_TAKEN")
+            if item["all_aligned"]:
+                flag_list.append("cheap::ALIGNED")
+            if not 0 in item["sizes"]:
+                flag_list.append("cheap::NONZERO")
+            if len(item["threads"]) == 1:
+                flag_list.append("cheap::SINGLE_THREADED")
+            print("cheap::cheap<" + str(item["nofree_footprint"]) + "> reg(" + " | ".join(flag_list) + ")")
             print("=====")
 
     @staticmethod
@@ -178,7 +188,7 @@ class Cheaper:
             if i["action"] == "S":
                 size_taken = True
                 continue
-            if len(i["stack"]) != depth:
+            if len(i["stack"]) < depth:
                 continue
             sizes.add(i["size"])
             size_histogram[i["size"]] += 1
