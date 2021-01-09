@@ -20,10 +20,10 @@ from textwrap import dedent
 class Cheaper:
 
     __output_filename = "cheaper.out"
-    
+
     # For measuring page-level fragmentation
     __pagesize = 4096
-    
+
     stack_info = {}
 
     @staticmethod
@@ -58,11 +58,11 @@ class Cheaper:
         if not os.path.isfile(args.progname):
             print("File " + args.progname + " does not exist.")
             sys.exit(-1)
-            
+
         if not os.path.isfile(Cheaper.__output_filename):
             print("File " + Cheaper.__output_filename + " does not exist.")
             sys.exit(-1)
-            
+
         return args
 
     def __init__(self, progname, depth, threshold_mallocs, threshold_score):
@@ -104,7 +104,13 @@ class Cheaper:
                 flag_list.append("cheap::NONZERO")
             if len(item["threads"]) == 1:
                 flag_list.append("cheap::SINGLE_THREADED")
-            print("cheap::cheap<" + str(item["nofree_footprint"]) + "> reg(" + " | ".join(flag_list) + ")")
+            print(
+                "cheap::cheap<"
+                + str(item["nofree_footprint"])
+                + "> reg("
+                + " | ".join(flag_list)
+                + ")"
+            )
             print("=====")
 
     @staticmethod
@@ -128,7 +134,6 @@ class Cheaper:
                     # If it failed to resolve symbols, use the address instead
                     if "?" in Cheaper.stack_info[stkaddr]:
                         Cheaper.stack_info[stkaddr] = "CHEAPERBAD " + str(hex(stkaddr))
-                        
 
     @staticmethod
     def utilization(allocs, n):
@@ -195,7 +200,7 @@ class Cheaper:
             tids.add(i["tid"])
             if i["action"] == "M":
                 if i["reqsize"] == 0 or i["reqsize"] % 16 != 0:
-                    #if all_aligned:
+                    # if all_aligned:
                     #    print("FIXME first reqsize not aligned: " + str(i["reqsize"]))
                     all_aligned = False
                 num_allocs += 1
@@ -253,7 +258,7 @@ class Cheaper:
             ]  # [skip:depth+skip]]
             # print(stk)
             # stk = list(filter(lambda s: s != "BAD", stk))
-            #if len(stk) == 0:
+            # if len(stk) == 0:
             #    continue
             if len(stk) != depth:
                 continue
