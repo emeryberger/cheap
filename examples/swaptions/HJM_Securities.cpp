@@ -4,6 +4,10 @@
 //Collaborator: Mikhail Smelyanskiy, Jike Chong, Intel
 //Modified by Christian Bienia for the PARSEC Benchmark Suite
 
+#if CHEAPEN
+#include "cheap.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -101,6 +105,9 @@ void * worker(void *arg){
     end = nSwaptions;
 
   for(int i=beg; i < end; i++) {
+#if CHEAPEN
+    //    cheap::cheap<338560000> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
+#endif
      int iSuccess = HJM_Swaption_Blocking(pdSwaptionPrice,  swaptions[i].dStrike, 
                                        swaptions[i].dCompounding, swaptions[i].dMaturity, 
                                        swaptions[i].dTenor, swaptions[i].dPaymentInterval,

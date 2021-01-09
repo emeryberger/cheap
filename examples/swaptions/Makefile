@@ -33,7 +33,7 @@ all: $(EXEC)
 ifdef trace
 CXXFLAGS += -g -O0 -fno-inline-functions -DNDEBUG -std=c++14
 else
-CXXFLAGS += -g -O3 -DNDEBUG -std=c++14
+CXXFLAGS += -flto -g -O3 -DNDEBUG -std=c++14
 endif
 
 $(EXEC): $(OBJS)

@@ -71,15 +71,15 @@ class Cheaper:
         analyzed = []
         Cheaper.resolve_addresses(x["trace"], progname, depth)
         for d in reversed(range(1, depth)):
-            print("FIXME analyzing depth " + str(d))
+            # print("FIXME analyzing depth " + str(d))
             a = Cheaper.process_trace(
                 x["trace"], progname, d, threshold_mallocs, threshold_score
             )
             analyzed += a
-        # Sort in reverse order by region score * number of allocations + stack length
+        # Sort in reverse order by region score * number of allocations / stack length
         analyzed = sorted(
             analyzed,
-            key=lambda a: a["region_score"] * a["allocs"] + len(a["stack"]),
+            key=lambda a: (a["region_score"] * a["allocs"]) / len(a["stack"]),
             reverse=True,
         )
         for item in analyzed:
@@ -195,8 +195,8 @@ class Cheaper:
             tids.add(i["tid"])
             if i["action"] == "M":
                 if i["reqsize"] == 0 or i["reqsize"] % 16 != 0:
-                    if all_aligned:
-                        print("FIXME first reqsize not aligned: " + str(i["reqsize"]))
+                    #if all_aligned:
+                    #    print("FIXME first reqsize not aligned: " + str(i["reqsize"]))
                     all_aligned = False
                 num_allocs += 1
                 # Compute actual footprint (taking into account mallocs and frees).

@@ -30,7 +30,7 @@ main()
   for (auto i = 0; i < 100; i++)
   {
 #if defined(CHEAPEN)
-    cheap::cheap<256 * 1048576> reg (cheap::NONZERO);
+    cheap::cheap<5436432> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
 #endif
     parseMe();
   }

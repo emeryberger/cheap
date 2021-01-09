@@ -158,7 +158,8 @@ int HJM_Swaption_Blocking(FTYPE *pdSwaptionPrice, //Output vector that will stor
   for (l=0;l<=lTrials-1;l+=BLOCKSIZE) {
       //For each trial a new HJM Path is generated
 #if CHEAPEN
-    cheap::cheap<1048576> reg (cheap::ALIGNED | cheap::NONZERO);
+    //    cheap::cheap<1048576> reg (cheap::NONZERO | cheap::SINGLE_THREADED);
+    cheap::cheap<1048576> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
 #endif
     iSuccess = HJM_SimPath_Forward_Blocking(ppdHJMPath, iN, iFactors, dYears, pdForward, pdTotalDrift,ppdFactors, &iRndSeed, BLOCKSIZE, pdZ, randZ); /* GC: 51% of the time goes here */
        if (iSuccess!=1)
