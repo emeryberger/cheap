@@ -66,21 +66,20 @@ class Cheaper:
         return args
 
     def __init__(self, progname, depth, threshold_mallocs, threshold_score):
-        with open("cheaper.out", "r") as f:
-            file_contents = f.read()
-        x = jsonlib.loads(file_contents)
-        trace = x["trace"]
+        with open(Cheaper.__output_filename, "r") as f:
+            x = jsonlib.load(f)
         analyzed = []
-        Cheaper.resolve_addresses(trace, progname, depth)
+        Cheaper.resolve_addresses(x["trace"], progname, depth)
         for d in reversed(range(1, depth)):
+            print("FIXME analyzing depth " + str(d))
             a = Cheaper.process_trace(
-                trace, progname, d, threshold_mallocs, threshold_score
+                x["trace"], progname, d, threshold_mallocs, threshold_score
             )
             analyzed += a
         # Sort in reverse order by region score * number of allocations * stack length
         analyzed = sorted(
             analyzed,
-            key=lambda a: a["region_score"] * a["allocs"] * len(a["stack"]),
+            key=lambda a: a["nofree_footprint"] / a["allocs"] + len(a["stack"]),
             reverse=True,
         )
         for item in analyzed:
