@@ -43,8 +43,8 @@ public:
   enum { Alignment = alignof(max_align_t) };
   NextHeap()
     : _inMalloc (false),
-      _inMemalign (false),
       _inFree (false),
+      _inMemalign (false),
       _malloc (nullptr),
       _free (nullptr),
       _memalign (nullptr),
@@ -121,12 +121,12 @@ private:
     return (*_memalign)(alignment, sz);
   }
 
-  bool _inMemalign;
   bool _inMalloc;
   bool _inFree;
-  memalignFn * _memalign;
+  bool _inMemalign;
   mallocFn * _malloc;
   freeFn * _free;
+  memalignFn * _memalign;
   mallocusablesizeFn * _malloc_usable_size;
 };
 #endif
