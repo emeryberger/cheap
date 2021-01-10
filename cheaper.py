@@ -90,10 +90,12 @@ class Cheaper:
             print("region score = ", item["region_score"])
             print("peak footprint = ", item["peak_footprint"])
             print("region footprint = ", item["nofree_footprint"])
+            print("potential leaked memory = ", item["potential_leaks"])
             print("number of allocs = ", item["allocs"])
             print("size taken = ", item["size_taken"])
             print("all aligned = ", item["all_aligned"])
             print("sizes = ", item["sizes"])
+            print("size histogram = ", item["size_histogram"])
             print("threads = ", item["threads"])
             flag_list = []
             if item["size_taken"]:
@@ -176,18 +178,26 @@ class Cheaper:
         sizes = set()
         # A histogram of the # of objects allocated of each size.
         size_histogram = defaultdict(int)
-        actual_footprint = 0  # mallocs - frees
-        peak_footprint = 0  # max actual_footprint
-        peak_footprint_index = 0  # index of alloc w/max footprint
-        nofree_footprint = 0  # sum(mallocs)
+        # mallocs - frees (of things allocated in this context)
+        actual_footprint = 0
+        # max actual_footprint
+        peak_footprint = 0
+        # index of alloc w/max footprint
+        peak_footprint_index = 0
+        # sum(mallocs) = the amount of memory used if frees were ignored
+        nofree_footprint = 0
         # set of all thread ids used for malloc/free
         tids = set()
         # set of all (currently) allocated objects from this site
         mallocs = set()
+        # total number of allocations
         num_allocs = 0
-        utilization = 0
-        size_taken = False  # true iff size was invoked
-        all_aligned = True  # true iff all requests were properly aligned
+        # was size ever invoked? true iff size was invoked
+        size_taken = False
+        # true iff all size requests were properly aligned
+        all_aligned = True
+        # amount of space that would leak if frees were ignored
+        would_leak = 0
         for (index, i) in enumerate(allocs):
             # If a size was taken, record this fact and continue.
             if i["action"] == "S":
@@ -223,11 +233,9 @@ class Cheaper:
                     actual_footprint -= i["size"]
                     mallocs.remove(i["address"])
                 else:
-                    pass
+                    would_leak += i["size"]
                     # print(mallocs)
                     # print(str(i["address"]) + " not found")
-        # Recompute utilization
-        # frag = Cheaper.utilization(allocs, peak_footprint_index)
         # Compute region_score (0 is worst, 1 is best - for region replacement).
         region_score = 0
         if nofree_footprint != 0:
@@ -240,8 +248,10 @@ class Cheaper:
                 "region_score": region_score,
                 "threads": tids,
                 "sizes": sizes,
+                "size_histogram": size_histogram,
                 "peak_footprint": peak_footprint,
                 "nofree_footprint": nofree_footprint,
+                "potential_leaks": would_leak,
                 "size_taken": size_taken,
                 "all_aligned": all_aligned,
             }
