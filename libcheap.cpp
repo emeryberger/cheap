@@ -26,6 +26,11 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
+#define TRACK_LAST_SIZE 0
+//#define MIN_ALIGNMENT 8
+#define MIN_ALIGNMENT alignof(max_align_t)
+#define THREAD_SAFE 1
+
 class ParentHeap : public NextHeap {};
 
 class CustomHeapType : public ParentHeap {
@@ -47,11 +52,24 @@ public:
   bool all_aligned{false}; //  if true, no need to align sizes
   bool all_nonzero{false}; //  if true, no zero size requests
   bool size_taken{true};   // if true, need metadata for size
-  void * last_malloc { nullptr };
-  size_t last_size { 0 };
+  // TBD: single size (so can return same size all the time)
+#if TRACK_LAST_SIZE
+  void *last_malloc{nullptr};
+  size_t last_size{0};
+#endif
 };
 
+class cheap_header {
+public:
+  cheap_header(size_t sz) : object_size(sz) {}
+  alignas(max_align_t) size_t object_size;
+};
+
+#if THREAD_SAFE
 static thread_local cheap_info info;
+#else
+static cheap_info info;
+#endif
 
 extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
                                               bool allAligned = false,
@@ -64,10 +82,6 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
   ci.size_taken = sizeTaken;
-  if (ci.size_taken) {
-    // Can't currently use regions if size was taken.
-    ci.in_region = false;
-  }
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
@@ -80,39 +94,39 @@ extern "C" ATTRIBUTE_EXPORT void region_end() {
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
   auto &ci = info;
   if (ci.in_region) {
-#if 0
-    if (ci.last_malloc == ptr) {
-      return ci.last_size;
-    }
-    // We don't know the real size, but we know it's at least this much.
-    // Not actually great because this breaks realloc. FIXME.
-    return alignof(max_align_t);
-#else
-    return 0;
-#endif
+    assert(ci.size_taken);
+    return ((cheap_header *)ptr - 1)->object_size;
   }
   return getTheCustomHeap().getSize(ptr);
 }
 
-extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t req_sz) {
   auto &ci = info;
+  size_t sz = req_sz;
   if (ci.in_region) {
-    // Enforce default alignment.
     if (!ci.all_aligned) {
+      // Enforce default alignment.
       if (!ci.all_nonzero) {
-        if (sz < alignof(max_align_t)) {
-          sz = alignof(max_align_t);
+        // Ensure zero requests are rounded up.
+        if (sz < MIN_ALIGNMENT) {
+          sz = MIN_ALIGNMENT;
         }
       }
-      sz = (sz + alignof(max_align_t) - 1) & ~(alignof(max_align_t) - 1);
+      sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
+    }
+    auto oldbuf = ci.region_buffer;
+    if (ci.size_taken) {
+      // Prepend an object header.
+      new (oldbuf) cheap_header(req_sz);
+      sz += sizeof(cheap_header);
+      oldbuf += sizeof(cheap_header);
     }
     if (ci.region_size_remaining < sz) {
       return nullptr;
     }
-    auto oldbuf = ci.region_buffer;
     ci.region_buffer += sz;
     ci.region_size_remaining -= sz;
-#if 0
+#if TRACK_LAST_SIZE
     ci.last_malloc = oldbuf;
     ci.last_size = sz;
 #endif
@@ -127,7 +141,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
   }
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t) {
   xxfree(ptr);
 }
 
