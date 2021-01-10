@@ -43,9 +43,9 @@ public:
   InitializeMe() {
     if (!_isInitialized) {
       // invoke backtrace so it resolves symbols now
-      volatile void *dl = dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
+      dlopen("libgcc_s.so.1", RTLD_NOW | RTLD_GLOBAL);
       void *callstack[4];
-      auto frames = backtrace(callstack, 4);
+      backtrace(callstack, 4);
       unlink(output_filename);
       auto output_file =
           open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
@@ -196,7 +196,7 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
   return real_sz;
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t) {
   xxfree(ptr);
 }
 
