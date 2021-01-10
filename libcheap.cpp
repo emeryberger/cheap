@@ -47,6 +47,8 @@ public:
   bool all_aligned{false}; //  if true, no need to align sizes
   bool all_nonzero{false}; //  if true, no zero size requests
   bool size_taken{true};   // if true, need metadata for size
+  void * last_malloc { nullptr };
+  size_t last_size { 0 };
 };
 
 static thread_local cheap_info info;
@@ -76,6 +78,19 @@ extern "C" ATTRIBUTE_EXPORT void region_end() {
 }
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
+  auto &ci = info;
+  if (ci.in_region) {
+#if 0
+    if (ci.last_malloc == ptr) {
+      return ci.last_size;
+    }
+    // We don't know the real size, but we know it's at least this much.
+    // Not actually great because this breaks realloc. FIXME.
+    return alignof(max_align_t);
+#else
+    return 0;
+#endif
+  }
   return getTheCustomHeap().getSize(ptr);
 }
 
@@ -97,6 +112,10 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t sz) {
     auto oldbuf = ci.region_buffer;
     ci.region_buffer += sz;
     ci.region_size_remaining -= sz;
+#if 0
+    ci.last_malloc = oldbuf;
+    ci.last_size = sz;
+#endif
     return oldbuf;
   }
   return getTheCustomHeap().malloc(sz);

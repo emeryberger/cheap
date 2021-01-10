@@ -3,7 +3,11 @@
 #include <iomanip>
 #include <iostream>
 
-#if defined(CHEAPEN)
+#if !defined(CHEAPEN)
+#define CHEAPEN 0
+#endif
+
+#if CHEAPEN
 #include "cheap.h"
 #endif
 
@@ -29,7 +33,7 @@ main()
 {
   for (auto i = 0; i < 100; i++)
   {
-#if defined(CHEAPEN)
+#if CHEAPEN
     cheap::cheap<5436432> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
 #endif
     parseMe();

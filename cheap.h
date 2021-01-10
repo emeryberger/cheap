@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <malloc.h>
 
 extern "C" {
 void region_begin(void *buf, size_t sz, bool allAligned = false,
@@ -16,7 +17,8 @@ enum flags {
   ALIGNED = 0b0000'0001,
   NONZERO = 0b0000'0010,
   SIZE_TAKEN = 0b0000'0100,
-  SINGLE_THREADED = 0b0000'1000
+  SINGLE_THREADED = 0b0000'1000,
+  REGION = 0b0001'0000
 };
 
 template <size_t RegionSize> class cheap {
