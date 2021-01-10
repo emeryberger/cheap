@@ -21,11 +21,13 @@ void parseMe(const char * s, size_t sz)
 {
   {
 #if CHEAPEN
-    cheap::cheap<10485760> reg(cheap::ALIGNED | cheap::NONZERO | cheap::SINGLE_THREADED); //  | cheap::SIZE_TAKEN
+    cheap::cheap<10485760> reg(cheap::ALIGNED | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::SIZE_TAKEN); //  | cheap::SIZE_TAKEN
 #endif
     using namespace rapidjson;
-    CrtAllocator alloc;
-    GenericDocument<UTF8<>, CrtAllocator> d(&alloc);
+    //    CrtAllocator alloc;
+    //    GenericDocument<UTF8<>, CrtAllocator> d(&alloc);
+    Document d;
+    //    GenericDocument<UTF8<>> d;
     d.Parse(s, sz);
   }
 }
