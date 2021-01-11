@@ -23,7 +23,7 @@ enum flags {
 
 template <size_t RegionSize> class cheap {
 public:
-  cheap(int f) {
+  inline cheap(int f) {
     if (RegionSize <= 1048576) {
       _buf = reinterpret_cast<char *>(alloca(RegionSize));
     } else {
@@ -32,7 +32,7 @@ public:
     region_begin(_buf, RegionSize, f & flags::ALIGNED, f & flags::NONZERO,
                  f & flags::SIZE_TAKEN);
   }
-  ~cheap() {
+  inline ~cheap() {
     region_end();
     if (RegionSize > 1048576) {
       delete[] _buf;
