@@ -48,6 +48,13 @@ directly in your program.  An example might be:
 
     cheap::cheap<5436432> reg(cheap::NONZERO | cheap::SINGLE_THREADED);
 
+Current options for the custom heap are the following:
+
+* `cheap::NONZERO` -- no requests for 0 bytes
+* `cheap::ALIGNED` -- all size requests are suitably aligned
+* `cheap::SINGLE_THREADED` -- all allocations and frees are by the same thread
+* `cheap::SIZE_TAKEN` -- need to track object sizes for `realloc` or `malloc_usable_size`
+
 Place this line at the appropriate point in the program to redirect
 all subsequent allocations and frees to use the generated custom
 heap. (Note: currently, the only custom heap option is a "region-style"
