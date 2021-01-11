@@ -8,19 +8,19 @@
 #include <assert.h>
 
 template <class SuperHeap,
-	  size_t ChunkSize,
 	  unsigned int MultiplierNumerator = 2,
-	  unsigned int MultiplierDenominator = 1>
+	  unsigned int MultiplierDenominator = 1,
+	  size_t ChunkSize = 4096>
 class RegionHeap : public SuperHeap {
 public:
 
-  enum { Alignment = SuperHeap::Alignment };
+  //  enum { Alignment = SuperHeap::Alignment };
 
   RegionHeap()
     : _sizeRemaining (0),
       _currentArena (nullptr),
       _pastArenas (nullptr),
-      _lastMultiple (1.0)
+      _lastChunkSize (ChunkSize)
   {
     static_assert(MultiplierNumerator >= MultiplierDenominator,
 		  "Numerator must be at least as large as the denominator.");
@@ -30,21 +30,14 @@ public:
 
   ~RegionHeap()
   {
-    Arena * ptr = _pastArenas;
-    while (ptr != nullptr) {
-      void * oldPtr = (void *) ptr;
-      ptr = ptr->nextArena;
-      SuperHeap::free (oldPtr);
-    }
-    if (_currentArena != nullptr)
-      SuperHeap::free ((void *) _currentArena);
+    reset();
   }
 
-  inline void * malloc (size_t sz) {
+  void * __attribute__((always_inline)) malloc (size_t sz) {
     void * ptr;
     // We assume sz is suitably aligned.
     if (!_currentArena || (_sizeRemaining < sz)) {
-      refill();
+      refill(sz);
     }
     // Bump the pointer and update the amount of memory remaining.
     _sizeRemaining -= sz;
@@ -54,8 +47,24 @@ public:
   }
 
   /// Free in a zone allocator is a no-op.
-  inline void free (void *) {}
+  void __attribute__((always_inline)) free (void *) {}
   
+  void __attribute__((noinline)) reset()
+  {
+    Arena * ptr = _pastArenas;
+    while (ptr != nullptr) {
+      void * oldPtr = (void *) ptr;
+      ptr = ptr->nextArena;
+      SuperHeap::free (oldPtr);
+     }
+    if (_currentArena != nullptr) {
+      SuperHeap::free ((void *) _currentArena);
+    }
+    _currentArena = nullptr;
+    _pastArenas = nullptr;
+    _lastChunkSize = ChunkSize;
+  }
+
 private:
 
   size_t getSize(void *);
@@ -63,27 +72,26 @@ private:
   RegionHeap (const RegionHeap&);
   RegionHeap& operator=(const RegionHeap&);
   
-  inline void refill(size_t sz) {
-    void * ptr;
+  void __attribute__((noinline)) refill(size_t sz) {
     // Get more space in our arena since there's not enough room in this one.
     // First, add this arena to our past arena list.
-    if (_currentArena != nullptr) {
+    if (_currentArena) {
       _currentArena->nextArena = _pastArenas;
       _pastArenas = _currentArena;
     }
     // Now get more memory.
-    _lastMultiple *= MultiplierNumerator;
-    _lastMultiple /= MultiplierDenominator;
-    size_t allocSize = ChunkSize * _lastMultiple;
+    size_t allocSize = (int) _lastChunkSize;
+    _lastChunkSize *= MultiplierNumerator;
+    _lastChunkSize /= MultiplierDenominator;
     if (allocSize < sz) {
-      allocSize = sz;
+      allocSize += sz;
     }
     _currentArena =
-      (Arena *) SuperHeap::malloc(allocSize + sizeof(Arena));
+      (Arena *) SuperHeap::malloc(allocSize);
     assert(_currentArena != nullptr);
     _currentArena->arenaSpace = (char *) (_currentArena + 1);
     _currentArena->nextArena = nullptr;
-    _sizeRemaining = allocSize;
+    _sizeRemaining = allocSize - sizeof(Arena);
   }
   
   class Arena {
@@ -106,6 +114,8 @@ private:
   /// A linked list of past arenas.
   Arena * _pastArenas;
 
-  /// Running multiplier.
-  float _lastMultiplier;
+  /// Last size (which increases geometrically).
+  float _lastChunkSize;
 };
+
+#endif
