@@ -1,7 +1,7 @@
 /*
   libcheap.cpp
      enables easy use of regions
-   invoke `region_begin(buf, sz)` --> all subsequent `malloc`s use the buffer,
+   invoke `region_begin(...)` --> all subsequent `malloc`s use the buffer,
   `free`s are ignored
    invoke `region_end()` --> back to normal `malloc`/`free` behavior
 
@@ -13,6 +13,7 @@
 
 #include "common.hpp"
 #include "nextheap.hpp"
+#include "regionheap.h"
 
 #if defined(__APPLE__)
 #include "macinterpose.h"
@@ -24,9 +25,8 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
-#define TRACK_LAST_SIZE 0
-//#define MIN_ALIGNMENT 8
-#define MIN_ALIGNMENT alignof(max_align_t)
+#define MIN_ALIGNMENT 8
+//#define MIN_ALIGNMENT alignof(max_align_t)
 #define THREAD_SAFE 1
 
 class ParentHeap : public NextHeap {};
@@ -42,19 +42,38 @@ CustomHeapType &getTheCustomHeap() {
   return thang;
 }
 
+using namespace HL;
+
+class TopHeap : public SizeHeap<UniqueHeap<ZoneHeap<MmapHeap, 65536> > > {
+public:
+  using SuperHeap = SizeHeap<UniqueHeap<ZoneHeap<MmapHeap, 65536> > >;
+  inline void * malloc(size_t sz) {
+    //    tprintf::tprintf("TopHeap size = @\n", sizeof(SuperHeap));
+    //    tprintf::tprintf("size = @\n", sz);
+    return SuperHeap::malloc(sz);
+  }
+};
+
+class CheapHeapType :
+  public UniqueHeap<KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap>> {
+public:
+  using SuperHeap = UniqueHeap<KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap>>;
+  inline void * malloc(size_t sz) {
+    //    tprintf::tprintf("CheapHeap size = @\n", sz);
+    return SuperHeap::malloc(sz);
+  }
+};
+
 class cheap_info {
 public:
   bool in_cheap{false};
-  char *region_buffer{nullptr};
-  size_t region_size_remaining{0};
+  //  char *region_buffer{nullptr};
+  //  size_t region_size_remaining{0};
   bool all_aligned{false}; //  if true, no need to align sizes
   bool all_nonzero{false}; //  if true, no zero size requests
   bool size_taken{true};   // if true, need metadata for size
   // TBD: single size (so can return same size all the time)
-#if TRACK_LAST_SIZE
-  void *last_malloc{nullptr};
-  size_t last_size{0};
-#endif
+  RegionHeap<CheapHeapType, 2, 1, 1048576> region;
 };
 
 class cheap_header {
@@ -69,13 +88,12 @@ static thread_local cheap_info info;
 static cheap_info info;
 #endif
 
-extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
-                                              bool allAligned = false,
+extern "C" ATTRIBUTE_EXPORT void region_begin(bool allAligned = false,
                                               bool allNonZero = false,
                                               bool sizeTaken = true) {
   auto &ci = info;
-  ci.region_buffer = reinterpret_cast<char *>(buf);
-  ci.region_size_remaining = sz;
+  //  ci.region_buffer = reinterpret_cast<char *>(buf);
+  //  ci.region_size_remaining = sz;
   ci.in_cheap = true;
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
@@ -84,9 +102,10 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(void *buf, size_t sz,
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
   auto &ci = info;
+  ci.region.reset();
   ci.in_cheap = false;
-  ci.region_buffer = nullptr;
-  ci.region_size_remaining = 0;
+  //  ci.region_buffer = nullptr;
+  //  ci.region_size_remaining = 0;
 }
 
 extern "C" size_t __attribute__((always_inline)) xxmalloc_usable_size(void *ptr) {
@@ -112,23 +131,15 @@ extern "C" void * __attribute__((always_inline)) xxmalloc(size_t req_sz) {
       }
       sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
     }
-    auto oldbuf = ci.region_buffer;
-    if (ci.size_taken) {
+    void * ptr;
+    if (!ci.size_taken) {
+      ptr = ci.region.malloc(req_sz);
+    } else {
+      ptr = ci.region.malloc(req_sz + sizeof(cheap_header));
       // Prepend an object header.
-      new (oldbuf) cheap_header(req_sz);
-      sz += sizeof(cheap_header);
-      oldbuf += sizeof(cheap_header);
+      new (ptr) cheap_header(req_sz);
     }
-    if (ci.region_size_remaining < sz) {
-      return nullptr;
-    }
-    ci.region_buffer += sz;
-    ci.region_size_remaining -= sz;
-#if TRACK_LAST_SIZE
-    ci.last_malloc = oldbuf;
-    ci.last_size = sz;
-#endif
-    return oldbuf;
+    return ptr;
   }
   return getTheCustomHeap().malloc(sz);
 }
@@ -147,9 +158,10 @@ extern "C" void * __attribute__((always_inline)) xxmemalign(size_t alignment, si
   auto &ci = info;
   if (ci.in_cheap) {
     // Round up the region pointer to the required alignment.
-    auto bufptr = reinterpret_cast<uintptr_t>(ci.region_buffer);
-    ci.region_buffer =
-        reinterpret_cast<char *>((bufptr + alignment - 1) & ~(alignment - 1));
+    // auto bufptr = reinterpret_cast<uintptr_t>(ci.region.malloc(sz));
+    // FIXME THIS IS NOT ENOUGH
+    //    ci.region_buffer =
+    //    reinterpret_cast<char *>((bufptr + alignment - 1) & ~(alignment - 1));
     return xxmalloc(sz);
   }
   return getTheCustomHeap().memalign(alignment, sz);
