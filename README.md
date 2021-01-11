@@ -60,7 +60,7 @@ all subsequent allocations and frees to use the generated custom
 heap. (Note: currently, the only custom heap option is a "region-style"
 allocator (a.k.a. "arena", "pool", or "monotonic resource").)
 
-For an example, see the file [`examples/json/testjson.cpp` (line 33).](https://github.com/emeryberger/cheaper/blob/main/examples/json/testjson.cpp#L33)
+For an example, see the file [`examples/json/testjson.cpp`).](https://github.com/emeryberger/cheaper/blob/main/examples/json/testjson.cpp#L37)
 
 Finally, compile your program to use the CHeap library as follows:
 
