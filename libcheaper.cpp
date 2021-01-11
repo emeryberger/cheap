@@ -224,3 +224,5 @@ extern "C" ATTRIBUTE_EXPORT void xxmalloc_lock() { getTheCustomHeap().lock(); }
 extern "C" ATTRIBUTE_EXPORT void xxmalloc_unlock() {
   getTheCustomHeap().unlock();
 }
+
+#include "gnuwrapper.cpp"

@@ -9,8 +9,6 @@
 
 */
 
-// currently experimental only!
-
 #include <heaplayers.h>
 
 #include "common.hpp"
@@ -91,7 +89,7 @@ extern "C" ATTRIBUTE_EXPORT void region_end() {
   ci.region_size_remaining = 0;
 }
 
-extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
+extern "C" ATTRIBUTE_EXPORT inline size_t xxmalloc_usable_size(void *ptr) {
   auto &ci = info;
   if (ci.in_region) {
     assert(ci.size_taken);
@@ -100,7 +98,7 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void *ptr) {
   return getTheCustomHeap().getSize(ptr);
 }
 
-extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t req_sz) {
+extern "C" ATTRIBUTE_EXPORT inline void *xxmalloc(size_t req_sz) {
   auto &ci = info;
   size_t sz = req_sz;
   if (ci.in_region) {
@@ -135,17 +133,17 @@ extern "C" ATTRIBUTE_EXPORT void *xxmalloc(size_t req_sz) {
   return getTheCustomHeap().malloc(sz);
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree(void *ptr) {
+extern "C" ATTRIBUTE_EXPORT inline void xxfree(void *ptr) {
   if (!info.in_region) {
     getTheCustomHeap().free(ptr);
   }
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxfree_sized(void *ptr, size_t) {
+extern "C" ATTRIBUTE_EXPORT inline void xxfree_sized(void *ptr, size_t) {
   xxfree(ptr);
 }
 
-extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
+extern "C" ATTRIBUTE_EXPORT inline void *xxmemalign(size_t alignment, size_t sz) {
   auto &ci = info;
   if (ci.in_region) {
     // Round up the region pointer to the required alignment.
@@ -157,8 +155,10 @@ extern "C" ATTRIBUTE_EXPORT void *xxmemalign(size_t alignment, size_t sz) {
   return getTheCustomHeap().memalign(alignment, sz);
 }
 
-extern "C" ATTRIBUTE_EXPORT void xxmalloc_lock() { getTheCustomHeap().lock(); }
+extern "C" ATTRIBUTE_EXPORT inline void xxmalloc_lock() { getTheCustomHeap().lock(); }
 
-extern "C" ATTRIBUTE_EXPORT void xxmalloc_unlock() {
+extern "C" ATTRIBUTE_EXPORT inline void xxmalloc_unlock() {
   getTheCustomHeap().unlock();
 }
+
+#include "gnuwrapper.cpp"
