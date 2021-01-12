@@ -1,22 +1,30 @@
 #include <thread>
-#include "cheapen.h"
+#include "cheap.h"
 
-#ifndef USE_REGIONS
-#define USE_REGIONS 0
+#ifndef CHEAPEN
+#define CHEAPEN 0
 #endif
 
+#ifdef TEST
+const auto NUMITERATIONS = 100;
+const auto NUMOBJS = 1000;
+const int NTHREADS = 1;
+#else
 const auto NUMITERATIONS = 1000;
 const auto NUMOBJS = 100000;
-const auto OBJSIZE = 16;
 const int NTHREADS = 32;
+#endif
+
+const auto OBJSIZE = 16;
 
 void allocWorker()
 {
   char buf[NUMOBJS * OBJSIZE];
   char * mem[NUMOBJS];
   for (int i = 0; i < NUMITERATIONS; i++) {
-#if USE_REGIONS
-    region_begin(&buf, NUMOBJS * OBJSIZE);
+#if CHEAPEN
+    //    
+    //    region_begin(&buf, NUMOBJS * OBJSIZE);
 #endif
     for (int j = 0; j < NUMOBJS; j++) {
       mem[j] = new char[OBJSIZE];
@@ -24,7 +32,7 @@ void allocWorker()
     for (int j = 0; j < NUMOBJS; j++) {
       delete mem[j];
     }
-#if USE_REGIONS
+#if CHEAPEN
     region_end();
 #endif
   }
