@@ -58,13 +58,16 @@ First, run your program with the Cheaper library, as follows:
 
     LD_PRELOAD=libcheaper.so ./yourprogram
 
-This generates a file `cheaper.out` in the current directory. That file is a JSON file that contains information used by the `cheaper.py` script.
+This generates a file `cheaper.out` in the current directory. That file is a JSON file that contains information used by the `cheaper.py` script. NOTE: you need to compile your program with several flags to make sure Cheaper can get enough information to work. For example:
 
-Note: you may need to install files from `requirements.txt` first:
-
-    pip install -r requirements.txt
+    clang++ -g -fno-inline-functions -O0 yourprogram.cpp -o yourprogram
 
 ### Analyze the trace with `cheaper.py`
+
+You may need to install files from `requirements.txt` the first time you
+run Cheaper:
+
+    pip install -r requirements.txt
 
 Now run Cheaper as follows:
 
