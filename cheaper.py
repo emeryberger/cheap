@@ -21,7 +21,7 @@ class Cheaper:
 
     __output_filename = "cheaper.out"
 
-    # For measuring page-level fragmentation
+    # For measuring page-level fragmentation, currently disabled.
     __pagesize = 4096
 
     stack_info = {}
@@ -106,6 +106,7 @@ class Cheaper:
                 flag_list.append("cheap::NONZERO")
             if len(item["threads"]) == 1:
                 flag_list.append("cheap::SINGLE_THREADED")
+            flag_list.append("cheap::DISABLE_FREE") # for now, always included
             print(
                 "cheap::cheap<"
                 + str(item["nofree_footprint"])

@@ -17,7 +17,8 @@ void doIt() {
 int
 main()
 {
-  //  std::cout << "SUP\n";
+  int v;
+  std::cout << &v << std::endl;
   for (int i = 0; i < 10; i++) {
     doIt();
   }
