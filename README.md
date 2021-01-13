@@ -34,14 +34,15 @@ Current options for the custom heap are the following:
 * `cheap::ALIGNED` -- all size requests are suitably aligned
 * `cheap::SINGLE_THREADED` -- all allocations and frees are by the same thread
 * `cheap::SIZE_TAKEN` -- need to track object sizes for `realloc` or `malloc_usable_size`
+* `cheap::SAME_SIZE` -- all object requests are the same size; pass the size as the second argument to the constructor
 * `cheap::DISABLE_FREE` -- turn `free` calls into no-ops (currently the default)
 
 Once you place this line at the appropriate point in your program, it
 will redirect all subsequent allocations and frees to use the
 generated custom heap. (Note: currently, the only custom heap option
 is a "region-style" allocator (a.k.a. "arena", "pool", or "monotonic
-resource").) Once this object goes out of scope (RAII-style, like a
-`guard`), the program reverts to ordinary behavior, using the
+resource").) Once this object goes out of scope ([RAII-style](https://en.cppreference.com/w/cpp/language/raii), like 
+[`std::lock_guard`](https://en.cppreference.com/w/cpp/thread/lock_guard)), the program reverts to ordinary behavior, using the
 system-supplied memory allocator, and the custom heap's memory is
 reclaimed.
 
