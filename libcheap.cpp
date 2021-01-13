@@ -42,38 +42,35 @@ CustomHeapType &getTheCustomHeap() {
   return thang;
 }
 
+class spin_lock {
+public:
+  void lock() {
+    while (_lock.test_and_set(std::memory_order_acquire))
+      ;
+  }
+  void unlock()
+  {
+    _lock.clear(std::memory_order_release);
+  }
+private:
+  std::atomic_flag _lock = ATOMIC_FLAG_INIT;
+};
+
 using namespace HL;
 
-class TopHeap : public SizeHeap<UniqueHeap<ZoneHeap<MmapHeap, 65536> > > {
-public:
-  using SuperHeap = SizeHeap<UniqueHeap<ZoneHeap<MmapHeap, 65536> > >;
-  inline void * malloc(size_t sz) {
-    //    tprintf::tprintf("TopHeap size = @\n", sizeof(SuperHeap));
-    //    tprintf::tprintf("size = @\n", sz);
-    return SuperHeap::malloc(sz);
-  }
-};
+class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<MmapHeap, 65536>>> {};
 
 class CheapHeapType :
-  public UniqueHeap<KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap>> {
-public:
-  using SuperHeap = UniqueHeap<KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap>>;
-  inline void * malloc(size_t sz) {
-    //    tprintf::tprintf("CheapHeap size = @\n", sz);
-    return SuperHeap::malloc(sz);
-  }
-};
+  public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
 
 class cheap_info {
 public:
   bool in_cheap{false};
-  //  char *region_buffer{nullptr};
-  //  size_t region_size_remaining{0};
   bool all_aligned{false}; //  if true, no need to align sizes
   bool all_nonzero{false}; //  if true, no zero size requests
   bool size_taken{true};   // if true, need metadata for size
   // TBD: single size (so can return same size all the time)
-  RegionHeap<CheapHeapType, 2, 1, 1048576> region;
+  RegionHeap<CheapHeapType, 2, 1, 65536> region;
 };
 
 class cheap_header {
@@ -92,8 +89,6 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(bool allAligned = false,
                                               bool allNonZero = false,
                                               bool sizeTaken = true) {
   auto &ci = info;
-  //  ci.region_buffer = reinterpret_cast<char *>(buf);
-  //  ci.region_size_remaining = sz;
   ci.in_cheap = true;
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
@@ -104,8 +99,6 @@ extern "C" ATTRIBUTE_EXPORT void region_end() {
   auto &ci = info;
   ci.region.reset();
   ci.in_cheap = false;
-  //  ci.region_buffer = nullptr;
-  //  ci.region_size_remaining = 0;
 }
 
 extern "C" size_t __attribute__((always_inline)) xxmalloc_usable_size(void *ptr) {

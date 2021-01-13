@@ -42,9 +42,8 @@ class Cheaper:
             "--threshold-mallocs", help="threshold allocations to report", default=100
         )
         parser.add_argument(
-            "--threshold-score", help="threshold reporting score", default=0.8
+            "--threshold-score", help="threshold reporting score", default=0.01
         )
-        parser.add_argument("--skip", help="number of stack frames to skip", default=0)
         parser.add_argument(
             "--depth", help="total number of stack frames to use (from top)", default=5
         )
@@ -108,9 +107,8 @@ class Cheaper:
                 flag_list.append("cheap::SINGLE_THREADED")
             flag_list.append("cheap::DISABLE_FREE") # for now, always included
             print(
-                "cheap::cheap<"
-                + str(item["nofree_footprint"])
-                + "> reg("
+                "cheap::cheap"
+                + " reg("
                 + " | ".join(flag_list)
                 + ");"
             )
@@ -266,11 +264,7 @@ class Cheaper:
         for i in trace:
             stk = [
                 Cheaper.stack_info[k] for k in i["stack"][-depth:]
-            ]  # [skip:depth+skip]]
-            # print(stk)
-            # stk = list(filter(lambda s: s != "BAD", stk))
-            # if len(stk) == 0:
-            #    continue
+            ]
             if len(stk) != depth:
                 continue
             stkstr = str(stk)

@@ -17,29 +17,33 @@ const int NTHREADS = 32;
 
 const auto OBJSIZE = 16;
 
+void doWork(char** mem)
+{
+  for (int j = 0; j < NUMOBJS; j++) {
+    mem[j] = new char[OBJSIZE];
+  }
+  for (int j = 0; j < NUMOBJS; j++) {
+    delete mem[j];
+  }
+}
+
 void allocWorker()
 {
   char buf[NUMOBJS * OBJSIZE];
   char * mem[NUMOBJS];
   for (int i = 0; i < NUMITERATIONS; i++) {
 #if CHEAPEN
-    //    
-    //    region_begin(&buf, NUMOBJS * OBJSIZE);
+  cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE);
 #endif
-    for (int j = 0; j < NUMOBJS; j++) {
-      mem[j] = new char[OBJSIZE];
-    }
-    for (int j = 0; j < NUMOBJS; j++) {
-      delete mem[j];
-    }
-#if CHEAPEN
-    region_end();
-#endif
+    doWork(mem);
   }
 }
 
 int main()
 {
+#if TEST
+  allocWorker();
+#else
   std::thread * t[NTHREADS];
   for (auto i = 0; i < NTHREADS; i++) {
     t[i] = new std::thread(allocWorker);
@@ -47,5 +51,6 @@ int main()
   for (auto i = 0; i < NTHREADS; i++) {
     t[i]->join();
   }
+#endif
   return 0;
 }
