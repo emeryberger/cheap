@@ -23,7 +23,7 @@
 #include <memory_resource>
 
 
-void parseMe(const char * s, size_t sz)
+void parseMe(const char * s, size_t sz) __attribute__((noinline))
 {
   //  boost::json::stream_parser p;
   boost::json::parser p;
