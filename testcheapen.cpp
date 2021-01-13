@@ -33,7 +33,7 @@ void allocWorker()
   char * mem[NUMOBJS];
   for (int i = 0; i < NUMITERATIONS; i++) {
 #if CHEAPEN
-  cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE);
+cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED | cheap::DISABLE_FREE, 24);
 #endif
     doWork(mem);
   }

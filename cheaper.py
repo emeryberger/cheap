@@ -103,15 +103,16 @@ class Cheaper:
                 flag_list.append("cheap::ALIGNED")
             if not 0 in item["sizes"]:
                 flag_list.append("cheap::NONZERO")
+            if len(item["sizes"]) == 1:
+                flag_list.append("cheap::SAME_SIZE")
             if len(item["threads"]) == 1:
                 flag_list.append("cheap::SINGLE_THREADED")
             flag_list.append("cheap::DISABLE_FREE") # for now, always included
-            print(
-                "cheap::cheap"
-                + " reg("
-                + " | ".join(flag_list)
-                + ");"
-            )
+            outputstr = "cheap::cheap reg(" + " | ".join(flag_list)
+            if len(item["sizes"]) == 1:
+                outputstr += ", " + str(list(item["sizes"])[0])
+            outputstr += ");"
+            print(outputstr)
             print("=====")
 
     @staticmethod

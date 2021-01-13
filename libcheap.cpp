@@ -72,10 +72,11 @@ public:
 class cheap_info {
 public:
   bool in_cheap{false};
-  bool all_aligned{false}; //  if true, no need to align sizes
-  bool all_nonzero{false}; //  if true, no zero size requests
-  bool size_taken{true};   // if true, need metadata for size
-  // TBD: single size (so can return same size all the time)
+  bool all_aligned{false}; // no need to align sizes
+  bool all_nonzero{false}; // no zero size requests
+  bool size_taken{true};   // need metadata for size
+  bool same_size{false};   // all requests the same size
+  size_t one_size{0};      // the one size (if above)
   CheapRegionHeap region;
 };
 
@@ -93,12 +94,16 @@ static cheap_info info;
 
 extern "C" ATTRIBUTE_EXPORT void region_begin(bool allAligned = false,
                                               bool allNonZero = false,
-                                              bool sizeTaken = true) {
+                                              bool sizeTaken = true,
+					      bool sameSize = false,
+					      size_t oneSize = 8) {
   auto &ci = info;
   ci.in_cheap = true;
   ci.all_aligned = allAligned;
   ci.all_nonzero = allNonZero;
   ci.size_taken = sizeTaken;
+  ci.same_size = sameSize;
+  ci.one_size = oneSize;
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
@@ -111,7 +116,11 @@ extern "C" size_t __attribute__((always_inline)) xxmalloc_usable_size(void *ptr)
   auto &ci = info;
   if (ci.in_cheap) {
     assert(ci.size_taken);
-    return ((cheap_header *)ptr - 1)->object_size;
+    if (ci.same_size) {
+      return ci.one_size;
+    } else {
+      return ((cheap_header *)ptr - 1)->object_size;
+    }
   }
   return getTheCustomHeap().getSize(ptr);
 }
@@ -131,7 +140,7 @@ extern "C" void * __attribute__((always_inline)) xxmalloc(size_t req_sz) {
       sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
     }
     void * ptr;
-    if (!ci.size_taken) {
+    if (!ci.size_taken && !ci.same_size) {
       ptr = ci.region.malloc(req_sz);
     } else {
       ptr = ci.region.malloc(req_sz + sizeof(cheap_header));

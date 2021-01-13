@@ -46,7 +46,7 @@ $(EXEC): $(OBJS)
 	$(CXX) $(CXXFLAGS) $(DEF) -c $*.c -o $*.o
 
 clean:
-	rm -f $(OBJS) $(EXEC)
+	rm -f $(OBJS)
 
 install:
 	mkdir -p $(PREFIX)/bin
