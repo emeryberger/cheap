@@ -21,6 +21,7 @@ enum flags {
   DISABLE_FREE = 0b0001'0000
 };
 
+ 
 class cheap {
 public:
   inline cheap(int f) {

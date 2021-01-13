@@ -63,6 +63,12 @@ class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<MmapHeap, 65536>>>
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
 
+class CheapRegionHeap :
+  public RegionHeap<CheapHeapType, 2, 1, 65536> {
+public:
+  virtual ~CheapRegionHeap() {};
+};
+
 class cheap_info {
 public:
   bool in_cheap{false};
@@ -70,7 +76,7 @@ public:
   bool all_nonzero{false}; //  if true, no zero size requests
   bool size_taken{true};   // if true, need metadata for size
   // TBD: single size (so can return same size all the time)
-  RegionHeap<CheapHeapType, 2, 1, 65536> region;
+  CheapRegionHeap region;
 };
 
 class cheap_header {
@@ -80,7 +86,7 @@ public:
 };
 
 #if THREAD_SAFE
-static thread_local cheap_info info;
+static thread_local cheap_info info __attribute__((tls_model ("initial-exec")));
 #else
 static cheap_info info;
 #endif
