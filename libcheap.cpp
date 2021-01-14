@@ -58,16 +58,32 @@ private:
 
 using namespace HL;
 
+// FIXME? use UniqueHeap...
 class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<MmapHeap, 65536>>> {};
 
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
 
 class CheapRegionHeap :
-  public RegionHeap<CheapHeapType, 2, 1, 65536> {
+  public RegionHeap<CheapHeapType, 2, 1, 65536> {};
+
+template <const char * name, typename SuperHeap>
+class PrintMeHeap :  public SuperHeap {
 public:
-  virtual ~CheapRegionHeap() {};
+  void * malloc(size_t sz) {
+    auto ptr = SuperHeap::malloc(sz);
+    // tprintf::tprintf("@ malloc request (@) = @\n", name, sz, ptr);
+    return ptr;
+  }
 };
+
+const char zone_adapt[] = "zone-adapt";
+const char adapt_top[] = "adapt-top";
+const char top[] = "top";
+
+class CheapFreelistHeap :
+  public FreelistHeap<ZoneHeap<PrintMeHeap<zone_adapt, PrintMeHeap<adapt_top, PrintMeHeap<top, TopHeap>>>, 65536>> {};
+
 
 class cheap_info {
 public:
@@ -75,9 +91,11 @@ public:
   bool all_aligned{false}; // no need to align sizes
   bool all_nonzero{false}; // no zero size requests
   bool size_taken{true};   // need metadata for size
-  bool same_size{false};   // all requests the same size
+  bool same_size{false};   // all requests the same size - use freelist
+  bool disable_free{true}; // use a "region" allocator
   size_t one_size{0};      // the one size (if above)
   CheapRegionHeap region;
+  CheapFreelistHeap freelist;
 };
 
 class cheap_header {
@@ -96,6 +114,7 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(bool allAligned = false,
                                               bool allNonZero = false,
                                               bool sizeTaken = true,
 					      bool sameSize = false,
+					      bool disableFree = true,
 					      size_t oneSize = 8) {
   auto &ci = info;
   ci.in_cheap = true;
@@ -104,11 +123,13 @@ extern "C" ATTRIBUTE_EXPORT void region_begin(bool allAligned = false,
   ci.size_taken = sizeTaken;
   ci.same_size = sameSize;
   ci.one_size = oneSize;
+  ci.disable_free = disableFree;
 }
 
 extern "C" ATTRIBUTE_EXPORT void region_end() {
   auto &ci = info;
   ci.region.reset();
+  ci.freelist.clear();
   ci.in_cheap = false;
 }
 
@@ -140,12 +161,21 @@ extern "C" void * __attribute__((always_inline)) xxmalloc(size_t req_sz) {
       sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
     }
     void * ptr;
-    if (!ci.size_taken && !ci.same_size) {
-      ptr = ci.region.malloc(req_sz);
+    if (ci.disable_free) {
+      if (!ci.size_taken && !ci.same_size) {
+	ptr = ci.region.malloc(req_sz);
+      } else {
+	ptr = ci.region.malloc(req_sz + sizeof(cheap_header));
+	// Prepend an object header.
+	new (ptr) cheap_header(req_sz);
+      }
     } else {
-      ptr = ci.region.malloc(req_sz + sizeof(cheap_header));
-      // Prepend an object header.
-      new (ptr) cheap_header(req_sz);
+      assert(ci.same_size);
+      ptr = ci.freelist.malloc(req_sz);
+      if (!ptr) {
+	tprintf::tprintf("@, @\n", ptr, req_sz);
+	abort();
+      }
     }
     return ptr;
   }
@@ -155,6 +185,11 @@ extern "C" void * __attribute__((always_inline)) xxmalloc(size_t req_sz) {
 extern "C" void __attribute__((always_inline)) xxfree(void *ptr) {
   if (!info.in_cheap) {
     getTheCustomHeap().free(ptr);
+    return;
+  }
+  if (!info.disable_free) {
+    assert(info.same_size);
+    info.freelist.free(ptr);
   }
 }
 

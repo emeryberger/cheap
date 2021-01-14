@@ -6,7 +6,8 @@
 extern "C" {
 void region_begin(bool allAligned = false,
                   bool allNonZero = false, bool sizeTaken = true,
-		  bool sameSize = false, size_t oneSize = 8);
+		  bool sameSize = false, bool disableFree = true,
+		  size_t oneSize = 8);
 void region_end();
 }
 
@@ -30,7 +31,7 @@ public:
     static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE == (1 << 7) - 1,
 		  "Flags must be one bit and mutually exclusive.");
     region_begin(f & flags::ALIGNED, f & flags::NONZERO,
-                 f & flags::SIZE_TAKEN, f & flags::SAME_SIZE, sz);
+                 f & flags::SIZE_TAKEN, f & flags::SAME_SIZE, f & flags::DISABLE_FREE, sz);
   }
   inline ~cheap() {
     region_end();
