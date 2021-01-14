@@ -12,7 +12,7 @@ const int NTHREADS = 1;
 #else
 const auto NUMITERATIONS = 1000;
 const auto NUMOBJS = 100000;
-const int NTHREADS = 32;
+const int NTHREADS = 1; // 32;
 #endif
 
 const auto OBJSIZE = 16;
@@ -33,7 +33,8 @@ void allocWorker()
   char * mem[NUMOBJS];
   for (int i = 0; i < NUMITERATIONS; i++) {
 #if CHEAPEN
-cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED | cheap::DISABLE_FREE, 24);
+    // cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED | cheap::DISABLE_FREE, 24);
+    cheap::cheap<cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED> reg(24);
 #endif
     doWork(mem);
   }

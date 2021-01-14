@@ -12,7 +12,7 @@ format: $(SOURCES)
 
 test:  $(SOURCES) test/regional.cpp testcheapen.cpp
 	clang++ -O3 -g -fno-inline-functions test/regional.cpp
-	clang++ -O0 -DTEST -fno-inline-functions -fno-inline -g testcheapen.cpp -o testcheapen-trace
+	clang++ -O0 -DTEST -IHeap-Layers -fno-inline-functions -fno-inline -g testcheapen.cpp -o testcheapen-trace
 	# clang++ -fno-inline-functions -fno-inline -O0 -g -DCHEAPEN=1 testcheapen.cpp -o testcheapen-cheapen -lpthread -L. -lcheap
-	clang++ -flto -O3 -DNDEBUG -DCHEAPEN=1 testcheapen.cpp -o testcheapen-cheapen -lpthread -L. -lcheap
-	clang++ -flto -O3 -g -DNDEBUG testcheapen.cpp -o testcheapen -lpthread
+	clang++ -flto -O3 -IHeap-Layers -DNDEBUG -DCHEAPEN=1 testcheapen.cpp -o testcheapen-cheapen -lpthread -L. -lcheap
+	clang++ -flto -O3 -g -IHeap-Layers -DNDEBUG testcheapen.cpp -o testcheapen -lpthread

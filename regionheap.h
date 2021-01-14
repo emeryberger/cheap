@@ -5,6 +5,8 @@
 #ifndef REGIONHEAP_H
 #define REGIONHEAP_H
 
+#include "heaplayers.h"
+
 #include <assert.h>
 
 template <class SuperHeap,
