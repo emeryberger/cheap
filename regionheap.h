@@ -40,6 +40,9 @@ public:
     // We assume sz is suitably aligned.
     if (!_currentArena || (_sizeRemaining < sz)) {
       refill(sz);
+      if (!_currentArena) {
+	return nullptr;
+      }
     }
     // Bump the pointer and update the amount of memory remaining.
     _sizeRemaining -= sz;
@@ -90,10 +93,14 @@ private:
     }
     _currentArena =
       (Arena *) SuperHeap::malloc(allocSize);
-    assert(_currentArena != nullptr);
-    _currentArena->arenaSpace = (char *) (_currentArena + 1);
-    _currentArena->nextArena = nullptr;
-    _sizeRemaining = allocSize - sizeof(Arena);
+    if (_currentArena) {
+      assert(_currentArena != nullptr);
+      _currentArena->arenaSpace = (char *) (_currentArena + 1);
+      _currentArena->nextArena = nullptr;
+      _sizeRemaining = allocSize - sizeof(Arena);
+    } else {
+      _sizeRemaining = 0;
+    }
   }
   
   class Arena {
