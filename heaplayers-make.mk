@@ -1,5 +1,5 @@
 CPPFLAGS = -ftls-model=initial-exec -W -Wall -flto -std=c++14 -DNDEBUG -g -fno-builtin-malloc -fvisibility=hidden -O3
-# CPPFLAGS = -std=c++14 -rdynamic -g -funwind-tables -fasynchronous-unwind-tables -O3 -DNDEBUG -fno-builtin-malloc # -fvisibility=hidden
+# CPPFLAGS = -std=c++14 -g
 CXX = clang++
 
 INCLUDES = -I. -I./include -IHeap-Layers -IHeap-Layers/wrappers -IHeap-Layers/utility

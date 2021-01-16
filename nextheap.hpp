@@ -52,10 +52,17 @@ public:
   {
   }
   inline void * malloc(size_t sz) {
+    if (_inMalloc) {
+      // If we're in a recursive call, return null.
+      return 0;
+    }
     if (unlikely(_malloc == nullptr)) {
       return slowPathMalloc(sz);
     }
-    return (*_malloc)(sz);
+    _inMalloc = true;
+    void * ptr = (*_malloc)(sz);
+    _inMalloc = false;
+    return ptr;
   }
   inline void * memalign(size_t alignment, size_t sz) {
     if (unlikely(_memalign == nullptr)) {
@@ -98,10 +105,6 @@ private:
   }
   
   void * slowPathMalloc(size_t sz) {
-    if (_inMalloc) {
-      // If we're in a recursive call, return null.
-      return 0;
-    }
     _inMalloc = true;
     // Welcome to the hideous incantation required to use dlsym with C++...
     *(void **)(&_malloc) = dlsym(RTLD_NEXT, "malloc");

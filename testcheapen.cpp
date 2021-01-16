@@ -17,28 +17,34 @@ const int NTHREADS = 1; // 32;
 
 const auto OBJSIZE = 16;
 
-void doWork(char** mem)
+void doWork(volatile char** mem)
 {
   for (int j = 0; j < NUMOBJS; j++) {
     mem[j] = new char[OBJSIZE];
+        volatile char ch = mem[j][0];
+    //    delete [] mem[j];
   }
+#if 1
   for (int j = 0; j < NUMOBJS; j++) {
-    delete mem[j];
+    delete [] mem[j];
   }
+#endif
 }
 
 void allocWorker()
 {
   char buf[NUMOBJS * OBJSIZE];
-  char * mem[NUMOBJS];
+  volatile char * mem[NUMOBJS];
   for (int i = 0; i < NUMITERATIONS; i++) {
 #if CHEAPEN
-    // cheap::cheap reg(cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED | cheap::DISABLE_FREE, 24);
-    cheap::cheap<cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED> reg(24);
+    cheap::cheap<cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED | cheap::DISABLE_FREE> reg(24);
+    //    cheap::cheap<cheap::ALIGNED | cheap::NONZERO | cheap::SAME_SIZE | cheap::SINGLE_THREADED> reg(24);
 #endif
     doWork(mem);
   }
 }
+
+#define TEST 1 // FIXME
 
 int main()
 {

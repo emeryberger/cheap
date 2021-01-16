@@ -23,7 +23,7 @@
 #include <memory_resource>
 
 
-void parseMe(const char * s, size_t sz) __attribute__((noinline))
+void parseMe(const char * s, size_t sz)
 {
   //  boost::json::stream_parser p;
   boost::json::parser p;
@@ -57,7 +57,7 @@ int main()
   for (auto i = 0; i < 1000; i++)
   {
 #if CHEAPEN
-    cheap::cheap reg(cheap::NONZERO | cheap::SINGLE_THREADED);
+    cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED> reg{};
 #endif
     parseMe(data, sz);
   }
