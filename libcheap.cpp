@@ -32,7 +32,11 @@ public:
   cheap_current(cheap_current &&) = delete;
   cheap_current & operator=(cheap_current &&) = delete;
   static auto*& current() {
+#if THREAD_SAFE
+    static __thread cheap::cheap_base * c __attribute__((tls_model ("initial-exec")));
+#else
     static cheap::cheap_base * c;
+#endif
     return c;
   }
 };
