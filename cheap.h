@@ -20,14 +20,13 @@ void region_end();
 using namespace HL;
 
 // FIXME? use UniqueHeap...
-class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<MmapHeap, 65536>>> {};
+class TopHeap : public SizeHeap<ZoneHeap<SizedMmapHeap, 65536>> {};
 
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
 
 class CheapRegionHeap :
   public RegionHeap<CheapHeapType, 2, 1, 65536> {};
-
 
 const char zone_adapt[] = "zone-adapt";
 const char adapt_top[] = "adapt-top";
@@ -44,8 +43,7 @@ public:
 };
 
 class CheapFreelistHeap :
-  public FreelistHeap<ZoneHeap<PrintMeHeap<zone_adapt, PrintMeHeap<adapt_top, PrintMeHeap<top, TopHeap>>>, 65536>> {};
-
+  public FreelistHeap<TopHeap> {};
 
 namespace cheap {
 
