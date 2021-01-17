@@ -31,7 +31,7 @@ public:
   cheap_current& operator=(const cheap_current&) = delete;
   cheap_current(cheap_current &&) = delete;
   cheap_current & operator=(cheap_current &&) = delete;
-  static auto*& current() {
+  inline static auto*& current() {
 #if THREAD_SAFE
     static __thread cheap::cheap_base * c __attribute__((tls_model ("initial-exec")));
 #else
@@ -44,15 +44,6 @@ public:
 __attribute__((visibility("default"))) cheap::cheap_base*& current() {
   return cheap_current::current();
 }
-
-
-#if 0
-__thread cheap::cheap ci __attribute__((tls_model ("initial-exec")));
-
-__attribute__((visibility("default"))) cheap::cheap*& cheapInfo() {
-  return &ci;
-}
-#endif
 
 #if 1
 #define FLATTEN __attribute__((flatten))

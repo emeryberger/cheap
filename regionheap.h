@@ -35,19 +35,21 @@ public:
     reset();
   }
 
-  void * __attribute__((always_inline)) malloc (size_t sz) {
+  inline void * __attribute__((always_inline)) malloc (size_t sz) {
     void * ptr;
     // We assume sz is suitably aligned.
-    if (!_currentArena || (_sizeRemaining < sz)) {
+    if (unlikely(!_currentArena || (_sizeRemaining < sz))) {
       refill(sz);
       if (!_currentArena) {
 	return nullptr;
       }
     }
+    //    tprintf::tprintf("bump @ from @\n", sz, _sizeRemaining);
     // Bump the pointer and update the amount of memory remaining.
     _sizeRemaining -= sz;
-    ptr = _currentArena->arenaSpace;
-    _currentArena->arenaSpace += sz;
+    ptr = _currentPointer; // Arena->arenaSpace;
+    _currentPointer += sz;
+    // _currentArena->arenaSpace += sz;
     return ptr;
   }
 
@@ -95,7 +97,8 @@ private:
       (Arena *) SuperHeap::malloc(allocSize);
     if (_currentArena) {
       assert(_currentArena != nullptr);
-      _currentArena->arenaSpace = (char *) (_currentArena + 1);
+      // _currentArena->arenaSpace = (char *) (_currentArena + 1);
+      _currentPointer = (char *) (_currentArena + 1);
       _currentArena->nextArena = nullptr;
       _sizeRemaining = allocSize - sizeof(Arena);
     } else {
@@ -110,8 +113,8 @@ private:
 		    "Alignment must match Arena size.");
     }
     
+    //    alignas(8) char * arenaSpace;
     Arena * nextArena;
-    char * arenaSpace;
   };
     
   /// Space left in the current arena.
@@ -119,6 +122,9 @@ private:
   
   /// The current arena.
   Arena * _currentArena;
+
+  /// The current bump pointer.
+  char * _currentPointer;
   
   /// A linked list of past arenas.
   Arena * _pastArenas;

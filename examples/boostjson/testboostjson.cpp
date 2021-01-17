@@ -25,13 +25,13 @@
 
 void parseMe(const char * s, size_t sz)
 {
-  //  boost::json::stream_parser p;
-  boost::json::parser p;
   boost::json::error_code ec;
 #if 1
+  boost::json::parser p;
   p.write(s, sz, ec);
-#endif
-#if 0
+#else
+  boost::json::stream_parser p;
+  p.write(s, sz, ec);
   if (!ec) {
     p.finish(ec);
     volatile auto& pv = p;
@@ -54,10 +54,11 @@ int main()
   auto str = sstr.str();
   auto data = str.data();
   auto sz = str.size();
+  char * buf = new char[3 * 1048576];
   for (auto i = 0; i < 1000; i++)
   {
 #if CHEAPEN
-    cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED> reg{};
+    cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::FIXED_BUFFER> reg(8, buf, 3 * 1048576);
 #endif
     parseMe(data, sz);
   }

@@ -47,39 +47,14 @@ public:
 const char region_cheap_heap[] = "region-cheap";
 
 class CheapRegionHeap :
-  public RegionHeap<CheapHeapType, 2, 1, 65536> {};
-
-#if 0
-public:
-  CheapRegionHeap()
-    : orig ((char *) h.map(10 * 1048576)),
-      buf (orig),
-      bufptr (buf)
-  {}
-  ~CheapRegionHeap() {
-    h.unmap(buf, 10 * 1048576);
-  }
-  void * malloc(size_t sz) {
-    auto ptr = bufptr;
-    bufptr += sz;
-    //    tprintf::tprintf("sz = @\n", sz);
-    return ptr;
-  }
-  void free(void *){}
-private:
-  MmapWrapper h;
-  char * orig;
-  char * buf;
-  char * bufptr;
-};
-#endif
+  public RegionHeap<ZoneHeap<SizedMmapHeap, 65536>, 2, 1, 3 * 1048576> {};
 
 const char zone_adapt[] = "zone-adapt";
 const char adapt_top[] = "adapt-top";
 const char top[] = "top";
 
 class CheapFreelistHeap :
-  public FreelistHeap<ZoneHeap<MmapHeap,
+  public FreelistHeap<ZoneHeap<SizedMmapHeap,
 			       4096>> {};
 
 namespace cheap {
@@ -91,6 +66,7 @@ namespace cheap {
     SINGLE_THREADED = 0b0000'1000, // all requests the same size - use freelist
     DISABLE_FREE = 0b0001'0000, // frees -> NOPs: use a "region" allocator
     SAME_SIZE = 0b0010'0000, // all requests the same size
+    FIXED_BUFFER = 0b0100'0000, // use a specified buffer
   };
 
   class cheap_base;
@@ -101,9 +77,9 @@ extern cheap::cheap_base*& current();
 namespace cheap {
   class cheap_base {
   public:
-    virtual void * malloc(size_t) { return nullptr; }
-    virtual void free(void *) {}
-    virtual size_t getSize(void *) { return 0; }
+    virtual void * malloc(size_t) = 0;
+    virtual void free(void *) = 0;
+    virtual size_t getSize(void *) = 0;
     //    virtual void * memalign(size_t, size_t) = 0;
     bool in_cheap {false};
   };
@@ -116,17 +92,22 @@ namespace cheap {
     alignas(max_align_t) size_t object_size;
   };
 
-  template <int Flags>
+  template <const int Flags>
   class cheap : public cheap_base {
   public:
-    inline cheap(size_t sz = 8) {
-      static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE == (1 << 7) - 1,
+    inline cheap(size_t sz = 8,
+		 char * buf = nullptr,
+		 size_t bufSz = 0)
+    {
+      static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE ^ flags::FIXED_BUFFER == (1 << 8) - 1,
 		    "Flags must be one bit and mutually exclusive.");
       _oneSize = sz;
+      _buf = buf;
+      _bufSz = bufSz;
       current() = this;
-      // tprintf::tprintf("setem up @\n", current());
       in_cheap = true;
     }
+    
     inline __attribute__((always_inline)) void * malloc(size_t req_sz) {
       assert(in_cheap);
       size_t sz = req_sz;
@@ -143,19 +124,32 @@ namespace cheap {
       void * ptr;
       if (Flags & flags::DISABLE_FREE) {
 	if (!((Flags & flags::SIZE_TAKEN) || (Flags & flags::SAME_SIZE))) {
-	  ptr = region.malloc(req_sz);
+	  if (Flags & flags::FIXED_BUFFER) {
+	    ptr = _buf;
+	    _buf += sz;
+	  } else {
+	    ptr = region.malloc(sz);
+	  }
 	} else {
-	  ptr = region.malloc(req_sz + sizeof(cheap_header));
+	  if (Flags & flags::FIXED_BUFFER) {
+	    ptr = _buf;
+	    _buf += sz;
+	  } else {
+	    ptr = region.malloc(sz + sizeof(cheap_header));
+	  }
 	  // Prepend an object header.
-	  new (ptr) cheap_header(req_sz);
+	  new (ptr) cheap_header(sz);
 	}
       } else {
 	assert(Flags & flags::SAME_SIZE);
-	ptr = freelist.malloc(req_sz);
+	assert(sz == req_sz);
+	ptr = freelist.malloc(sz);
+#if 0
 	if (!ptr) {
 	  tprintf::tprintf("@, @\n", ptr, req_sz);
 	  abort();
 	}
+#endif
       }
       return ptr;
     }
@@ -186,6 +180,8 @@ namespace cheap {
     }
   private:
     size_t _oneSize {0};
+    char * _buf;
+    size_t _bufSz;
     CheapRegionHeap region;
     CheapFreelistHeap freelist;
   };
