@@ -2,7 +2,7 @@
 
 #define MIN_ALIGNMENT 8
 //#define MIN_ALIGNMENT alignof(max_align_t)
-#define THREAD_SAFE 0
+#define THREAD_SAFE 1
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -46,8 +46,10 @@ public:
 
 const char region_cheap_heap[] = "region-cheap";
 
-class CheapRegionHeap {
-  //  public RegionHeap<PrintMeHeap<region_cheap_heap, CheapHeapType>, 2, 1, 65536>
+class CheapRegionHeap :
+  public RegionHeap<CheapHeapType, 2, 1, 65536> {};
+
+#if 0
 public:
   CheapRegionHeap()
     : orig ((char *) h.map(10 * 1048576)),
@@ -70,24 +72,15 @@ private:
   char * buf;
   char * bufptr;
 };
+#endif
 
 const char zone_adapt[] = "zone-adapt";
 const char adapt_top[] = "adapt-top";
 const char top[] = "top";
 
-class CheapFreelistHeap {
-public:
-  void * malloc(size_t);
-  void free(void *);
-};
-
-#if 0
-  public FreelistHeap<ZoneHeap<PrintMeHeap<zone_adapt,
-					   PrintMeHeap<adapt_top,
-						       PrintMeHeap<top,
-								   CheapHeapType>>>,
-			       128000>> {};
-#endif
+class CheapFreelistHeap :
+  public FreelistHeap<ZoneHeap<MmapHeap,
+			       4096>> {};
 
 namespace cheap {
 
