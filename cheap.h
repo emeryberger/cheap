@@ -15,7 +15,7 @@
 
 using namespace HL;
 
-class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<StopMe<MmapHeap>, 65536>>> {};
+class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<SizedMmapHeap, 65536>>> {};
 
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
