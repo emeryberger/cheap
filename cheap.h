@@ -15,20 +15,6 @@
 
 using namespace HL;
 
-template <typename SuperHeap>
-class StopMe : public SuperHeap {
-public:
-  void * malloc(size_t sz) {
-    //    tprintf::tprintf("sz = @\n", sz);
-    if (sz == 16384) {
-      abort();
-    }
-    auto ptr = SuperHeap::malloc(sz);
-    return ptr;
-  }
-};
-
-// FIXME? use UniqueHeap...
 class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<StopMe<MmapHeap>, 65536>>> {};
 
 class CheapHeapType :
