@@ -80,6 +80,15 @@ namespace cheap {
 
   template <const int Flags>
   class cheap : public cheap_base {
+  private:
+    
+    static constexpr bool isAligned = Flags & flags::ALIGNED;
+    static constexpr bool isAllNonZero = Flags & flags::NONZERO;
+    static constexpr bool disableFrees = Flags & flags::DISABLE_FREE;
+    static constexpr bool sizeTaken = Flags & flags::SIZE_TAKEN;
+    static constexpr bool useFixedBuffer = Flags & flags::FIXED_BUFFER;
+    static constexpr bool allSameSize = Flags & flags::SAME_SIZE;
+    
   public:
     inline cheap(size_t sz = 8,
 		 char * buf = nullptr,
@@ -87,6 +96,7 @@ namespace cheap {
     {
       static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE ^ flags::FIXED_BUFFER == (1 << 8) - 1,
 		    "Flags must be one bit and mutually exclusive.");
+      static_assert(disableFrees || allSameSize, "If frees are disabled (DISABLE_FREE), all requests must be the same size (SAME_SIZE).");
       _oneSize = sz;
       _buf = buf;
       _bufSz = bufSz;
@@ -97,9 +107,9 @@ namespace cheap {
     inline __attribute__((always_inline)) void * malloc(size_t req_sz) {
       assert(in_cheap);
       size_t sz = req_sz;
-      if (!(Flags & flags::ALIGNED)) {
+      if (!isAligned) {
 	// Enforce default alignment.
-	if (!(Flags & flags::NONZERO)) {
+	if (!isAllNonZero) {
 	  // Ensure zero requests are rounded up.
 	  if (sz < MIN_ALIGNMENT) {
 	    sz = MIN_ALIGNMENT;
@@ -108,51 +118,49 @@ namespace cheap {
 	sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
       }
       void * ptr;
-      if (Flags & flags::DISABLE_FREE) {
-	if (!((Flags & flags::SIZE_TAKEN) || (Flags & flags::SAME_SIZE))) {
-	  if (Flags & flags::FIXED_BUFFER) {
+      if (disableFrees) {
+	if (!(sizeTaken || allSameSize)) {
+	  if (useFixedBuffer) {
 	    ptr = _buf;
 	    _buf += sz;
 	  } else {
-	    ptr = region.malloc(sz);
+	    ptr = getRegion().malloc(sz);
 	  }
 	} else {
-	  if (Flags & flags::FIXED_BUFFER) {
+	  if (useFixedBuffer) {
 	    ptr = _buf;
-	    _buf += sz;
+	    _buf += sz + sizeof(cheap_header);
 	  } else {
-	    ptr = region.malloc(sz + sizeof(cheap_header));
+	    ptr = getRegion().malloc(sz + sizeof(cheap_header));
 	  }
 	  // Prepend an object header.
 	  new (ptr) cheap_header(sz);
+	  ptr = (cheap_header *) ptr + 1;
 	}
       } else {
-	assert(Flags & flags::SAME_SIZE);
 	assert(sz == req_sz);
-	ptr = freelist.malloc(sz);
-#if 0
-	if (!ptr) {
-	  tprintf::tprintf("@, @\n", ptr, req_sz);
-	  abort();
-	}
-#endif
+	ptr = getFreelist().malloc(sz);
       }
       return ptr;
     }
     inline void free(void * ptr) {
       //      tprintf::tprintf("current now = @\n", current());
       assert(in_cheap);
-      if (!(Flags & flags::DISABLE_FREE)) {
-	assert(Flags & flags::SAME_SIZE);
-	freelist.free(ptr);
+      if (!disableFrees) {
+	static_assert(disableFrees || allSameSize, "Must all be same size.");
+	getFreelist().free(ptr);
       }
     }
     inline size_t getSize(void * ptr) {
-      assert(Flags & flags::SIZE_TAKEN);
-      if (Flags & flags::SAME_SIZE) {
-	return _oneSize;
+      if (sizeTaken) {
+	if (allSameSize) {
+	  return _oneSize;
+	} else {
+	  return ((cheap_header *)ptr - 1)->object_size;
+	}
       } else {
-	return ((cheap_header *)ptr - 1)->object_size;
+	assert(false);
+	return 0;
       }
     }
 #if 0
@@ -160,16 +168,27 @@ namespace cheap {
     }
 #endif
     inline ~cheap() {
-      //      region.reset();
-      //      freelist.clear(); // FIXME MAYBE
+      if (disableFrees) {
+	if (!useFixedBuffer) {
+	  getRegion().clear();
+	}
+      } else {
+	getFreelist().clear();
+      }
       in_cheap = false;
     }
   private:
     size_t _oneSize {0};
     char * _buf;
     size_t _bufSz;
-    CheapRegionHeap region;
-    CheapFreelistHeap freelist;
+    static auto& getRegion() {
+      static thread_local CheapRegionHeap region;
+      return region;
+    }
+    static auto& getFreelist() {
+      static thread_local CheapFreelistHeap freelist;
+      return freelist;
+    }
   };
 
  
