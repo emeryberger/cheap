@@ -57,7 +57,7 @@ int main()
   for (auto i = 0; i < 1000; i++)
   {
 #if CHEAPEN
-    cheap::cheap reg(cheap::NONZERO | cheap::SINGLE_THREADED);
+    cheap::cheap<cheap::NONZERO | cheap::SINGLE_THREADED> reg;
 #endif
     parseMe(data, sz);
   }
