@@ -1,8 +1,8 @@
 #pragma once
 
-#define MIN_ALIGNMENT 8
-//#define MIN_ALIGNMENT alignof(max_align_t)
-#define THREAD_SAFE 0
+//#define MIN_ALIGNMENT 8
+#define MIN_ALIGNMENT alignof(max_align_t)
+#define THREAD_SAFE 1
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -30,14 +30,8 @@ public:
   }
 };
 
-const char region_cheap_heap[] = "region-cheap";
-
 class CheapRegionHeap :
   public RegionHeap<ZoneHeap<SizedMmapHeap, 65536>, 2, 1, 3 * 1048576> {};
-
-const char zone_adapt[] = "zone-adapt";
-const char adapt_top[] = "adapt-top";
-const char top[] = "top";
 
 class CheapFreelistHeap :
   public FreelistHeap<ZoneHeap<SizedMmapHeap,
@@ -63,9 +57,9 @@ extern cheap::cheap_base*& current();
 namespace cheap {
   class cheap_base {
   public:
-    virtual void * malloc(size_t) = 0;
-    virtual void free(void *) = 0;
-    virtual size_t getSize(void *) = 0;
+    inline __attribute__((always_inline)) virtual void * malloc(size_t) = 0;
+    inline __attribute__((always_inline)) virtual void free(void *) = 0;
+    inline __attribute__((always_inline)) virtual size_t getSize(void *) = 0;
     //    virtual void * memalign(size_t, size_t) = 0;
     bool in_cheap {false};
   };
@@ -178,11 +172,13 @@ namespace cheap {
     }
   private:
 
-    inline auto * getRegion() {
+    inline CheapRegionHeap * getRegion() {
+      //      return nullptr;
       return &region;
     }
 
-    inline auto * getFreelist() {
+    inline CheapFreelistHeap * getFreelist() {
+      // return nullptr;
       return &freelist;
     }
 
