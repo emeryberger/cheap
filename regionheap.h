@@ -32,7 +32,7 @@ public:
 
   ~RegionHeap()
   {
-    reset();
+    clear();
   }
 
   inline void * __attribute__((always_inline)) malloc (size_t sz) {
@@ -56,17 +56,18 @@ public:
   /// Free in a zone allocator is a no-op.
   void __attribute__((always_inline)) free (void *) {}
   
-  void __attribute__((noinline)) reset()
+  void __attribute__((noinline)) clear()
   {
     Arena * ptr = _pastArenas;
     while (ptr != nullptr) {
       void * oldPtr = (void *) ptr;
       ptr = ptr->nextArena;
       SuperHeap::free (oldPtr);
-     }
+    }
     if (_currentArena != nullptr) {
       SuperHeap::free ((void *) _currentArena);
     }
+    _sizeRemaining = 0;
     _currentArena = nullptr;
     _pastArenas = nullptr;
     _lastChunkSize = ChunkSize;
