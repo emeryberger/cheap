@@ -23,6 +23,11 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
+CustomHeapType &getTheCustomHeap() {
+  static CustomHeapType thang;
+  return thang;
+}
+
 class cheap_current {
 private:
   cheap_current();

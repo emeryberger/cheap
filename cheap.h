@@ -205,11 +205,6 @@ public:
   void unlock() {}
 };
 
-CustomHeapType &getTheCustomHeap() {
-  static CustomHeapType thang;
-  return thang;
-}
-
 class spin_lock {
 public:
   void lock() {
