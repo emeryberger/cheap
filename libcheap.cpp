@@ -64,7 +64,9 @@ extern "C" size_t FLATTEN xxmalloc_usable_size(void *ptr) {
   return getTheCustomHeap().getSize(ptr);
 }
 
-extern "C" void * FLATTEN xxmalloc(size_t req_sz) {
+extern "C" void * FLATTEN xxmalloc(size_t req_sz) __attribute__((alloc_size(1))) __attribute((malloc));
+
+  extern "C" void * FLATTEN xxmalloc(size_t req_sz) {
   size_t sz = req_sz;
   auto ci = current();
   //  tprintf::tprintf("xxmalloc(@) OH YEAH @\n", sz, ci);
