@@ -53,7 +53,7 @@ __attribute__((visibility("default"))) cheap::cheap_base*& current() {
 
 extern "C" size_t FLATTEN xxmalloc_usable_size(void *ptr) {
   auto ci = current();
-  if (ci && ci->in_cheap) {
+  if (likely(ci && ci->in_cheap)) {
     return ci->getSize(ptr);
   }
   return getTheCustomHeap().getSize(ptr);
@@ -63,15 +63,17 @@ extern "C" void * FLATTEN xxmalloc(size_t req_sz) {
   size_t sz = req_sz;
   auto ci = current();
   //  tprintf::tprintf("xxmalloc(@) OH YEAH @\n", sz, ci);
-  if (ci && ci->in_cheap) {
-    return ci->malloc(sz);
+  if (likely(ci && ci->in_cheap)) {
+    auto ptr = ci->malloc(sz);
+    //    tprintf::tprintf("region malloc @ = @\n", sz, ptr);
+    return ptr;
   }
   return getTheCustomHeap().malloc(sz);
 }
 
 extern "C" void FLATTEN xxfree(void *ptr) {
   auto ci = current();
-  if (!ci || !ci->in_cheap) {
+  if (unlikely(!ci || !ci->in_cheap)) {
     getTheCustomHeap().free(ptr);
     return;
   }
@@ -84,7 +86,7 @@ extern "C" void FLATTEN xxfree_sized(void *ptr, size_t) {
 
 extern "C" void * FLATTEN xxmemalign(size_t alignment, size_t sz) {
   auto ci = current();
-  if (ci && ci->in_cheap) {
+  if (likely(ci && ci->in_cheap)) {
     // Round up the region pointer to the required alignment.
     // auto bufptr = reinterpret_cast<uintptr_t>(ci->region.malloc(sz));
     // FIXME THIS IS NOT ENOUGH

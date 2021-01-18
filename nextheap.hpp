@@ -52,7 +52,7 @@ public:
   {
   }
   inline void * malloc(size_t sz) {
-    if (_inMalloc) {
+    if (unlikely(_inMalloc)) {
       // If we're in a recursive call, return null.
       return 0;
     }

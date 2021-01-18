@@ -2,7 +2,7 @@
 
 #define MIN_ALIGNMENT 8
 //#define MIN_ALIGNMENT alignof(max_align_t)
-#define THREAD_SAFE 1
+#define THREAD_SAFE 0
 
 #include <stdlib.h>
 #include <malloc.h>
@@ -96,7 +96,7 @@ namespace cheap {
     {
       static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE ^ flags::FIXED_BUFFER == (1 << 8) - 1,
 		    "Flags must be one bit and mutually exclusive.");
-      static_assert(disableFrees || allSameSize, "If frees are disabled (DISABLE_FREE), all requests must be the same size (SAME_SIZE).");
+      static_assert(disableFrees || allSameSize, "Either frees must be disabled (DISABLE_FREE), or all requests must be the same size (SAME_SIZE).");
       _oneSize = sz;
       _buf = buf;
       _bufSz = bufSz;
@@ -124,14 +124,14 @@ namespace cheap {
 	    ptr = _buf;
 	    _buf += sz;
 	  } else {
-	    ptr = getRegion().malloc(sz);
+	    ptr = getRegion()->malloc(sz);
 	  }
 	} else {
 	  if (useFixedBuffer) {
 	    ptr = _buf;
 	    _buf += sz + sizeof(cheap_header);
 	  } else {
-	    ptr = getRegion().malloc(sz + sizeof(cheap_header));
+	    ptr = getRegion()->malloc(sz + sizeof(cheap_header));
 	  }
 	  // Prepend an object header.
 	  new (ptr) cheap_header(sz);
@@ -139,7 +139,7 @@ namespace cheap {
 	}
       } else {
 	assert(sz == req_sz);
-	ptr = getFreelist().malloc(sz);
+	ptr = getFreelist()->malloc(sz);
       }
       return ptr;
     }
@@ -147,8 +147,7 @@ namespace cheap {
       //      tprintf::tprintf("current now = @\n", current());
       assert(in_cheap);
       if (!disableFrees) {
-	static_assert(disableFrees || allSameSize, "Must all be same size.");
-	getFreelist().free(ptr);
+	getFreelist()->free(ptr);
       }
     }
     inline size_t getSize(void * ptr) {
@@ -170,25 +169,28 @@ namespace cheap {
     inline ~cheap() {
       if (disableFrees) {
 	if (!useFixedBuffer) {
-	  getRegion().clear();
+	  getRegion()->clear();
 	}
       } else {
-	getFreelist().clear();
+	getFreelist()->clear();
       }
       in_cheap = false;
     }
   private:
+
+    inline auto * getRegion() {
+      return &region;
+    }
+
+    inline auto * getFreelist() {
+      return &freelist;
+    }
+
+    CheapRegionHeap region;
+    CheapFreelistHeap freelist;
     size_t _oneSize {0};
     char * _buf;
     size_t _bufSz;
-    static auto& getRegion() {
-      static thread_local CheapRegionHeap region;
-      return region;
-    }
-    static auto& getFreelist() {
-      static thread_local CheapFreelistHeap freelist;
-      return freelist;
-    }
   };
 
  

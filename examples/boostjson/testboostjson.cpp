@@ -26,7 +26,7 @@
 void parseMe(const char * s, size_t sz)
 {
   boost::json::error_code ec;
-#if 1
+#if 0
   boost::json::parser p;
   p.write(s, sz, ec);
 #else
@@ -34,13 +34,12 @@ void parseMe(const char * s, size_t sz)
   p.write(s, sz, ec);
   if (!ec) {
     p.finish(ec);
-    volatile auto& pv = p;
   }
   if (!ec) {
+#if !CHEAPEN
     auto jv = p.release();
-    volatile auto& v = jv;
+#endif
   }
-  volatile auto& pv = p;
 #endif
 }
 
@@ -59,6 +58,7 @@ int main()
   {
 #if CHEAPEN
     cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::FIXED_BUFFER> reg(8, buf, 3 * 1048576);
+    // cheap::cheap<cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE> reg;
 #endif
     parseMe(data, sz);
   }
