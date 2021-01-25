@@ -15,10 +15,12 @@
 
 using namespace HL;
 
+#if 0
 class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<SizedMmapHeap, 65536>>> {};
 
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
+#endif
 
 template <const char * name, typename SuperHeap>
 class PrintMeHeap :  public SuperHeap {
