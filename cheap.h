@@ -1,15 +1,11 @@
 #pragma once
 
+//#define MIN_ALIGNMENT 8
+#define MIN_ALIGNMENT alignof(max_align_t)
+#define THREAD_SAFE 1
+
 #include <stdlib.h>
 #include <malloc.h>
-
-extern "C" {
-  void region_begin(bool allAligned,
-                  bool allNonZero, bool sizeTaken,
-		  bool sameSize, bool disableFree,
-		  size_t oneSize);
-void region_end();
-}
 
 #if defined(__cplusplus)
 
@@ -19,82 +15,183 @@ void region_end();
 
 using namespace HL;
 
-// FIXME? use UniqueHeap...
-class TopHeap : public SizeHeap<ZoneHeap<SizedMmapHeap, 65536>> {};
+#if 0
+class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<SizedMmapHeap, 65536>>> {};
 
 class CheapHeapType :
   public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
-
-class CheapRegionHeap :
-  public RegionHeap<CheapHeapType, 2, 1, 65536> {};
-
-const char zone_adapt[] = "zone-adapt";
-const char adapt_top[] = "adapt-top";
-const char top[] = "top";
+#endif
 
 template <const char * name, typename SuperHeap>
 class PrintMeHeap :  public SuperHeap {
 public:
-  void * malloc(size_t sz) {
+  inline void * malloc(size_t sz) {
     auto ptr = SuperHeap::malloc(sz);
     // tprintf::tprintf("@ malloc request (@) = @\n", name, sz, ptr);
     return ptr;
   }
 };
 
+class CheapRegionHeap :
+  public RegionHeap<ZoneHeap<SizedMmapHeap, 65536>, 2, 1, 3 * 1048576> {};
+
 class CheapFreelistHeap :
-  public FreelistHeap<TopHeap> {};
+  public FreelistHeap<ZoneHeap<SizedMmapHeap,
+			       4096>> {};
 
 namespace cheap {
 
-enum flags {
-  ALIGNED = 0b0000'0001,  // no need to align sizes
-  NONZERO = 0b0000'0010,  // no zero size requests
-  SIZE_TAKEN = 0b0000'0100, // need support for size
-  SINGLE_THREADED = 0b0000'1000, // all requests the same size - use freelist
-  DISABLE_FREE = 0b0001'0000, // frees -> NOPs: use a "region" allocator
-  SAME_SIZE = 0b0010'0000, // all requests the same size
-};
+  enum flags {
+    ALIGNED = 0b0000'0001,  // no need to align sizes
+    NONZERO = 0b0000'0010,  // no zero size requests
+    SIZE_TAKEN = 0b0000'0100, // need support for size
+    SINGLE_THREADED = 0b0000'1000, // all requests the same size - use freelist
+    DISABLE_FREE = 0b0001'0000, // frees -> NOPs: use a "region" allocator
+    SAME_SIZE = 0b0010'0000, // all requests the same size
+    FIXED_BUFFER = 0b0100'0000, // use a specified buffer
+  };
 
+  class cheap_base;
+}
 
-  class cheap_base {};
+extern cheap::cheap_base*& current();
 
-template <int Flags>
-class cheap : public cheap_base {
-public:
-  inline cheap(size_t sz = 8) {
-    static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE == (1 << 7) - 1,
-		  "Flags must be one bit and mutually exclusive.");
-    region_begin(Flags & flags::ALIGNED, Flags & flags::NONZERO,
-                 Flags & flags::SIZE_TAKEN, Flags & flags::SAME_SIZE, Flags & flags::DISABLE_FREE, sz);
-  }
-  inline ~cheap() {
-    region_end();
-  }
-};
+namespace cheap {
+  class cheap_base {
+  public:
+    inline __attribute__((always_inline)) virtual void * malloc(size_t) = 0;
+    inline __attribute__((always_inline)) virtual void free(void *) = 0;
+    inline __attribute__((always_inline)) virtual size_t getSize(void *) = 0;
+    //    virtual void * memalign(size_t, size_t) = 0;
+    bool in_cheap {false};
+  };
+}
 
+namespace cheap {
+  class cheap_header {
+  public:
+    cheap_header(size_t sz) : object_size(sz) {}
+    alignas(max_align_t) size_t object_size;
+  };
 
-class cheap_info {
-public:
-  alignas(double) char cheap_buf[sizeof(cheap_base)];
-  cheap_base * cheap;
-  bool in_cheap{false};
-  bool all_aligned{false}; // no need to align sizes
-  bool all_nonzero{false}; // no zero size requests
-  bool size_taken{true};   // need metadata for size
-  bool disable_free{true}; // use a "region" allocator
-  bool same_size{false};   // all requests the same size - use freelist
-  size_t one_size{0};      // the one size (if above)
-  CheapRegionHeap region;
-  CheapFreelistHeap freelist;
-};
+  template <const int Flags>
+  class cheap : public cheap_base {
+  private:
+    
+    static constexpr bool isAligned = Flags & flags::ALIGNED;
+    static constexpr bool isAllNonZero = Flags & flags::NONZERO;
+    static constexpr bool disableFrees = Flags & flags::DISABLE_FREE;
+    static constexpr bool sizeTaken = Flags & flags::SIZE_TAKEN;
+    static constexpr bool useFixedBuffer = Flags & flags::FIXED_BUFFER;
+    static constexpr bool allSameSize = Flags & flags::SAME_SIZE;
+    
+  public:
+    inline cheap(size_t sz = 8,
+		 char * buf = nullptr,
+		 size_t bufSz = 0)
+    {
+      static_assert(flags::ALIGNED ^ flags::NONZERO ^ flags::SIZE_TAKEN ^ flags::SINGLE_THREADED ^ flags::DISABLE_FREE ^ flags::SAME_SIZE ^ flags::FIXED_BUFFER == (1 << 8) - 1,
+		    "Flags must be one bit and mutually exclusive.");
+      static_assert(disableFrees || allSameSize, "Either frees must be disabled (DISABLE_FREE), or all requests must be the same size (SAME_SIZE).");
+      _oneSize = sz;
+      _buf = buf;
+      _bufSz = bufSz;
+      current() = this;
+      in_cheap = true;
+    }
+    
+    inline __attribute__((always_inline)) void * malloc(size_t req_sz) {
+      assert(in_cheap);
+      size_t sz = req_sz;
+      if (!isAligned) {
+	// Enforce default alignment.
+	if (!isAllNonZero) {
+	  // Ensure zero requests are rounded up.
+	  if (sz < MIN_ALIGNMENT) {
+	    sz = MIN_ALIGNMENT;
+	  }
+	}
+	sz = (sz + MIN_ALIGNMENT - 1) & ~(MIN_ALIGNMENT - 1);
+      }
+      void * ptr;
+      if (disableFrees) {
+	if (!(sizeTaken || allSameSize)) {
+	  if (useFixedBuffer) {
+	    ptr = _buf;
+	    _buf += sz;
+	  } else {
+	    ptr = getRegion()->malloc(sz);
+	  }
+	} else {
+	  if (useFixedBuffer) {
+	    ptr = _buf;
+	    _buf += sz + sizeof(cheap_header);
+	  } else {
+	    ptr = getRegion()->malloc(sz + sizeof(cheap_header));
+	  }
+	  // Prepend an object header.
+	  new (ptr) cheap_header(sz);
+	  ptr = (cheap_header *) ptr + 1;
+	}
+      } else {
+	assert(sz == req_sz);
+	ptr = getFreelist()->malloc(sz);
+      }
+      return ptr;
+    }
+    inline void free(void * ptr) {
+      //      tprintf::tprintf("current now = @\n", current());
+      assert(in_cheap);
+      if (!disableFrees) {
+	getFreelist()->free(ptr);
+      }
+    }
+    inline size_t getSize(void * ptr) {
+      if (sizeTaken) {
+	if (allSameSize) {
+	  return _oneSize;
+	} else {
+	  return ((cheap_header *)ptr - 1)->object_size;
+	}
+      } else {
+	assert(false);
+	return 0;
+      }
+    }
+#if 0
+    inline void * memalign(size_t, size_t) {
+    }
+#endif
+    inline ~cheap() {
+      if (disableFrees) {
+	if (!useFixedBuffer) {
+	  getRegion()->clear();
+	}
+      } else {
+	getFreelist()->clear();
+      }
+      in_cheap = false;
+    }
+  private:
 
-class cheap_header {
-public:
-  cheap_header(size_t sz) : object_size(sz) {}
-  alignas(max_align_t) size_t object_size;
-};
-  
+    inline CheapRegionHeap * getRegion() {
+      //      return nullptr;
+      return &region;
+    }
+
+    inline CheapFreelistHeap * getFreelist() {
+      // return nullptr;
+      return &freelist;
+    }
+
+    CheapRegionHeap region;
+    CheapFreelistHeap freelist;
+    size_t _oneSize {0};
+    char * _buf;
+    size_t _bufSz;
+  };
+
+ 
 } // namespace cheap
 
 
@@ -105,11 +202,6 @@ public:
   void lock() {}
   void unlock() {}
 };
-
-CustomHeapType &getTheCustomHeap() {
-  static CustomHeapType thang;
-  return thang;
-}
 
 class spin_lock {
 public:

@@ -32,36 +32,42 @@ public:
 
   ~RegionHeap()
   {
-    reset();
+    clear();
   }
 
-  void * __attribute__((always_inline)) malloc (size_t sz) {
+  inline void * __attribute__((always_inline)) malloc (size_t sz) {
     void * ptr;
     // We assume sz is suitably aligned.
-    if (!_currentArena || (_sizeRemaining < sz)) {
+    if (unlikely(!_currentArena || (_sizeRemaining < sz))) {
       refill(sz);
+      if (!_currentArena) {
+	return nullptr;
+      }
     }
+    //    tprintf::tprintf("bump @ from @\n", sz, _sizeRemaining);
     // Bump the pointer and update the amount of memory remaining.
     _sizeRemaining -= sz;
-    ptr = _currentArena->arenaSpace;
-    _currentArena->arenaSpace += sz;
+    ptr = _currentPointer; // Arena->arenaSpace;
+    _currentPointer += sz;
+    // _currentArena->arenaSpace += sz;
     return ptr;
   }
 
   /// Free in a zone allocator is a no-op.
   void __attribute__((always_inline)) free (void *) {}
   
-  void __attribute__((noinline)) reset()
+  void __attribute__((noinline)) clear()
   {
     Arena * ptr = _pastArenas;
     while (ptr != nullptr) {
       void * oldPtr = (void *) ptr;
       ptr = ptr->nextArena;
       SuperHeap::free (oldPtr);
-     }
+    }
     if (_currentArena != nullptr) {
       SuperHeap::free ((void *) _currentArena);
     }
+    _sizeRemaining = 0;
     _currentArena = nullptr;
     _pastArenas = nullptr;
     _lastChunkSize = ChunkSize;
@@ -90,10 +96,15 @@ private:
     }
     _currentArena =
       (Arena *) SuperHeap::malloc(allocSize);
-    assert(_currentArena != nullptr);
-    _currentArena->arenaSpace = (char *) (_currentArena + 1);
-    _currentArena->nextArena = nullptr;
-    _sizeRemaining = allocSize - sizeof(Arena);
+    if (_currentArena) {
+      assert(_currentArena != nullptr);
+      // _currentArena->arenaSpace = (char *) (_currentArena + 1);
+      _currentPointer = (char *) (_currentArena + 1);
+      _currentArena->nextArena = nullptr;
+      _sizeRemaining = allocSize - sizeof(Arena);
+    } else {
+      _sizeRemaining = 0;
+    }
   }
   
   class Arena {
@@ -103,8 +114,8 @@ private:
 		    "Alignment must match Arena size.");
     }
     
+    //    alignas(8) char * arenaSpace;
     Arena * nextArena;
-    char * arenaSpace;
   };
     
   /// Space left in the current arena.
@@ -112,6 +123,9 @@ private:
   
   /// The current arena.
   Arena * _currentArena;
+
+  /// The current bump pointer.
+  char * _currentPointer;
   
   /// A linked list of past arenas.
   Arena * _pastArenas;

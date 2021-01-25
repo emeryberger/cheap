@@ -1,5 +1,5 @@
 PREFIX := ${PARSECDIR}/pkgs/apps/swaptions/inst/${PARSECPLAT}
-DEF = -I../..
+DEF = -I../.. -I../../Heap-Layers
 INCLUDE =
 CXX = clang++
 EXEC = swaptions

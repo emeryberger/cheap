@@ -1,4 +1,4 @@
-INCLUDES = -I../../Heap-Layers -I../.. -I. # -I/usr/include/boost
+INCLUDES = -I../.. -I../../Heap-Layers -I. # -I/usr/include/boost
 
 all:
 	clang++ -flto $(INCLUDES) -L../.. -O3 -g -DNDEBUG testboostjson.cpp -o testboostjson
