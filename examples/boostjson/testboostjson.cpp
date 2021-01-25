@@ -23,7 +23,7 @@
 #include <memory_resource>
 
 
-void parseMe(const char * s, size_t sz)
+void parseMe(volatile const char * s, size_t sz)
 {
   boost::json::error_code ec;
 #if 0
@@ -31,7 +31,7 @@ void parseMe(const char * s, size_t sz)
   p.write(s, sz, ec);
 #else
   boost::json::stream_parser p;
-  p.write(s, sz, ec);
+  p.write((const char *) s, sz, ec);
   if (!ec) {
     p.finish(ec);
   }
@@ -52,7 +52,7 @@ int main()
   //  mallopt(M_MMAP_THRESHOLD, 10487560 + 32);
   auto str = sstr.str();
   auto data = str.data();
-  auto sz = str.size();
+  volatile auto sz = str.size();
   char * buf = new char[3 * 1048576];
   for (auto i = 0; i < 1000; i++)
   {
