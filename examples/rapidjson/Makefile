@@ -1,6 +1,6 @@
 INCLUDES = -I../../Heap-Layers -I../..
-CXXFLAGS = -O0 -g -lpthread
-# CXXFLAGS = -flto -O3 -g -DNDEBUG -lpthread
+# CXXFLAGS = -O0 -g -lpthread
+CXXFLAGS = -flto -O3 -g -DNDEBUG -lpthread
 CXXFLAGS_DEBUG = -O2 -g -lpthread
 
 all:
