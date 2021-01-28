@@ -23,6 +23,11 @@
 #define LOCAL_PREFIX(x) x
 #endif
 
+CustomHeapType &getTheCustomHeap() {
+  static CustomHeapType thang;
+  return thang;
+}
+
 class cheap_current {
 private:
   cheap_current();
@@ -31,7 +36,7 @@ public:
   cheap_current& operator=(const cheap_current&) = delete;
   cheap_current(cheap_current &&) = delete;
   cheap_current & operator=(cheap_current &&) = delete;
-  static auto*& current() {
+  inline static auto*& current() {
 #if THREAD_SAFE
     static __thread cheap::cheap_base * c __attribute__((tls_model ("initial-exec")));
 #else
@@ -45,15 +50,6 @@ __attribute__((visibility("default"))) cheap::cheap_base*& current() {
   return cheap_current::current();
 }
 
-
-#if 0
-__thread cheap::cheap ci __attribute__((tls_model ("initial-exec")));
-
-__attribute__((visibility("default"))) cheap::cheap*& cheapInfo() {
-  return &ci;
-}
-#endif
-
 #if 1
 #define FLATTEN __attribute__((flatten))
 #else
@@ -62,25 +58,29 @@ __attribute__((visibility("default"))) cheap::cheap*& cheapInfo() {
 
 extern "C" size_t FLATTEN xxmalloc_usable_size(void *ptr) {
   auto ci = current();
-  if (ci && ci->in_cheap) {
+  if (likely(ci && ci->in_cheap)) {
     return ci->getSize(ptr);
   }
   return getTheCustomHeap().getSize(ptr);
 }
 
-extern "C" void * FLATTEN xxmalloc(size_t req_sz) {
+extern "C" void * FLATTEN xxmalloc(size_t req_sz) __attribute__((alloc_size(1))) __attribute((malloc));
+
+  extern "C" void * FLATTEN xxmalloc(size_t req_sz) {
   size_t sz = req_sz;
   auto ci = current();
   //  tprintf::tprintf("xxmalloc(@) OH YEAH @\n", sz, ci);
-  if (ci && ci->in_cheap) {
-    return ci->malloc(sz);
+  if (likely(ci && ci->in_cheap)) {
+    auto ptr = ci->malloc(sz);
+    //    tprintf::tprintf("region malloc @ = @\n", sz, ptr);
+    return ptr;
   }
   return getTheCustomHeap().malloc(sz);
 }
 
 extern "C" void FLATTEN xxfree(void *ptr) {
   auto ci = current();
-  if (!ci || !ci->in_cheap) {
+  if (unlikely(!ci || !ci->in_cheap)) {
     getTheCustomHeap().free(ptr);
     return;
   }
@@ -93,7 +93,7 @@ extern "C" void FLATTEN xxfree_sized(void *ptr, size_t) {
 
 extern "C" void * FLATTEN xxmemalign(size_t alignment, size_t sz) {
   auto ci = current();
-  if (ci && ci->in_cheap) {
+  if (likely(ci && ci->in_cheap)) {
     // Round up the region pointer to the required alignment.
     // auto bufptr = reinterpret_cast<uintptr_t>(ci->region.malloc(sz));
     // FIXME THIS IS NOT ENOUGH

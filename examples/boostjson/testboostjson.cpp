@@ -23,24 +23,23 @@
 #include <memory_resource>
 
 
-void parseMe(const char * s, size_t sz)
+void parseMe(volatile const char * s, size_t sz)
 {
-  //  boost::json::stream_parser p;
-  boost::json::parser p;
   boost::json::error_code ec;
-#if 1
-  p.write(s, sz, ec);
-#endif
 #if 0
+  boost::json::parser p;
+  p.write(s, sz, ec);
+#else
+  boost::json::stream_parser p;
+  p.write((const char *) s, sz, ec);
   if (!ec) {
     p.finish(ec);
-    volatile auto& pv = p;
   }
   if (!ec) {
+#if !CHEAPEN
     auto jv = p.release();
-    volatile auto& v = jv;
+#endif
   }
-  volatile auto& pv = p;
 #endif
 }
 
@@ -53,11 +52,13 @@ int main()
   //  mallopt(M_MMAP_THRESHOLD, 10487560 + 32);
   auto str = sstr.str();
   auto data = str.data();
-  auto sz = str.size();
+  volatile auto sz = str.size();
+  char * buf = new char[3 * 1048576];
   for (auto i = 0; i < 1000; i++)
   {
 #if CHEAPEN
-    cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED> reg{};
+    cheap::cheap<cheap::DISABLE_FREE | cheap::NONZERO | cheap::SINGLE_THREADED | cheap::FIXED_BUFFER> reg(8, buf, 3 * 1048576);
+    // cheap::cheap<cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE> reg;
 #endif
     parseMe(data, sz);
   }
