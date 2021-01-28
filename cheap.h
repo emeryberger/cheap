@@ -19,7 +19,7 @@ using namespace HL;
 class TopHeap : public SizeHeap<LockedHeap<SpinLock, ZoneHeap<SizedMmapHeap, 65536>>> {};
 
 class CheapHeapType :
-  public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
+  public KingsleyHeap<SizeHeap<AdaptHeap<DLList, TopHeap>>, TopHeap> {};
 #endif
 
 template <const char * name, typename SuperHeap>
@@ -32,8 +32,13 @@ public:
   }
 };
 
+class TopHeap : public SizeHeap<ZoneHeap<SizedMmapHeap, 65536>> {};
+
+class CheapHeapType :
+  public KingsleyHeap<AdaptHeap<DLList, TopHeap>, TopHeap> {};
+
 class CheapRegionHeap :
-  public RegionHeap<ZoneHeap<SizedMmapHeap, 65536>, 2, 1, 3 * 1048576> {};
+  public RegionHeap<CheapHeapType, 2, 1, 3 * 1048576> {};
 
 class CheapFreelistHeap :
   public FreelistHeap<ZoneHeap<SizedMmapHeap,
@@ -174,18 +179,18 @@ namespace cheap {
     }
   private:
 
-    inline CheapRegionHeap * getRegion() {
+    static inline CheapRegionHeap * getRegion() {
       //      return nullptr;
+      static CheapRegionHeap region;
       return &region;
     }
 
-    inline CheapFreelistHeap * getFreelist() {
+    static inline CheapFreelistHeap * getFreelist() {
       // return nullptr;
+      static CheapFreelistHeap freelist;
       return &freelist;
     }
 
-    CheapRegionHeap region;
-    CheapFreelistHeap freelist;
     size_t _oneSize {0};
     char * _buf;
     size_t _bufSz;
