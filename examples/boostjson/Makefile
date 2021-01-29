@@ -1,11 +1,12 @@
 INCLUDES = -I../.. -I../../Heap-Layers -I. # -I/usr/include/boost
+CXXFLAGS = -std=c++20 -g
 
 all:
-	clang++ -flto $(INCLUDES) -L../.. -O3 -g -DNDEBUG testboostjson.cpp -o testboostjson
-	clang++ -flto -DCHEAPEN=1 $(INCLUDES) -L../.. -O3 -g -DNDEBUG testboostjson.cpp -o testboostjson-cheapened -lcheap
+	clang++ -flto $(INCLUDES) -L../.. $(CXXFLAGS) -O3 -DNDEBUG testboostjson.cpp -o testboostjson
+	clang++ -flto -DCHEAPEN=1 $(INCLUDES) -L../.. $(CXXFLAGS) -O3 -DNDEBUG testboostjson.cpp -o testboostjson-cheapened -lcheap
 
 trace:
-	clang++ -fno-inline-functions $(INCLUDES) -L../.. -O2 -g -DNDEBUG testboostjson.cpp -o testboostjson-trace
+	clang++ -fno-inline-functions $(INCLUDES) -L../.. $(CXXFLAGS) -O2 -DNDEBUG testboostjson.cpp -o testboostjson-trace
 
 test:
-	clang++ -fno-inline-functions -DCHEAPEN=1 $(INCLUDES) -L../.. -O0 -g testboostjson.cpp -o testboostjson-test -lcheap
+	clang++ -fno-inline-functions -DCHEAPEN=1 $(INCLUDES) -L../.. $(CXXFLAGS) -O0 testboostjson.cpp -o testboostjson-test -lcheap
