@@ -8,7 +8,7 @@
 #define CHEAPEN 0
 #endif
 
-#define OPTIMIZED_HEAP 1
+#define OPTIMIZED_HEAP 0 // NB: NOT working
 
 #if CHEAPEN
 #include "cheap.h"
@@ -35,21 +35,21 @@ void parseMe(volatile const char * s, size_t sz)
   boost::json::error_code ec;
   
 #if 0
-  boost::json::parser p;
-  p.write(s, sz, ec);
+  boost::json::parser ps;
+  ps.write(s, sz, ec);
 #else
-  boost::json::stream_parser p;
-  p.write((const char *) s, sz, ec);
+  boost::json::stream_parser ps;
+  ps.write((const char *) s, sz, ec);
   if (!ec) {
-    p.finish(ec);
+    ps.finish(ec);
   }
 #if !OPTIMIZED_HEAP
   if (!ec) {
 #if !CHEAPEN
-    auto jv = p.release();
-#endif
+    auto jv = ps.release();
 #endif
   }
+#endif
 #endif
 }
 
