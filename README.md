@@ -24,7 +24,7 @@ heap until the heap goes out of scope.
 
 To use Cheap, you include the file `cheap.h`, and then insert a line of code creating a custom heap. For example:
 
-    cheap::cheap reg(cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE);
+    cheap::cheap<cheap::NONZERO | cheap::SINGLE_THREADED | cheap::DISABLE_FREE> r;
 
 The options for the heap are passed as a series of flags, each separated by `|`.
 
