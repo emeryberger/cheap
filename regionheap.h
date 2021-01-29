@@ -115,7 +115,7 @@ private:
     }
     
     //    alignas(8) char * arenaSpace;
-    Arena * nextArena;
+    Arena * nextArena { nullptr };
   };
     
   /// Space left in the current arena.
