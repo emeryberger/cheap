@@ -8,6 +8,8 @@
 #define CHEAPEN 0
 #endif
 
+#define OPTIMIZED_HEAP 1
+
 #if CHEAPEN
 #include "cheap.h"
 #endif
@@ -22,10 +24,16 @@
 #include <vector>
 #include <memory_resource>
 
-
 void parseMe(volatile const char * s, size_t sz)
 {
+#if OPTIMIZED_HEAP
+  std::pmr::monotonic_buffer_resource mr;
+  std::pmr::polymorphic_allocator<> pa{ &mr };
+  auto &p = *pa.new_object<boost::json::stream_parser>();
+  p.reset(pa);
+#endif
   boost::json::error_code ec;
+  
 #if 0
   boost::json::parser p;
   p.write(s, sz, ec);
@@ -35,9 +43,11 @@ void parseMe(volatile const char * s, size_t sz)
   if (!ec) {
     p.finish(ec);
   }
+#if !OPTIMIZED_HEAP
   if (!ec) {
 #if !CHEAPEN
     auto jv = p.release();
+#endif
 #endif
   }
 #endif
