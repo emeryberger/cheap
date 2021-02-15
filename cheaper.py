@@ -123,16 +123,24 @@ class Cheaper:
             for stkaddr in i["stack"][-depth:]:
                 if stkaddr not in Cheaper.stack_info:
                     if platform == "darwin":
-                        result = subprocess.run(
-                            ["atos", "-o", progname, hex(stkaddr)],
-                            stdout=subprocess.PIPE,
-                        )
+                        print("YO")
+                        print(stkaddr, hex(stkaddr))
+                        result = str(stkaddr) # FIXME symbolication still not working
+                        if False:
+                            result = subprocess.run(
+                                ["atos", "-o", progname, hex(stkaddr)],
+                                stdout=subprocess.PIPE,
+                            )
                     else:
                         result = subprocess.run(
                             ["addr2line", hex(stkaddr), "-C", "-e", progname],
                             stdout=subprocess.PIPE,
                         )
-                    Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
+                    if platform == "darwin":
+                        # Using stdout currently disabled
+                        Cheaper.stack_info[stkaddr] = result
+                    else:
+                        Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
                     # If it failed to resolve symbols, use the address instead
                     if "?" in Cheaper.stack_info[stkaddr]:
                         Cheaper.stack_info[stkaddr] = "CHEAPERBAD " + str(hex(stkaddr))
