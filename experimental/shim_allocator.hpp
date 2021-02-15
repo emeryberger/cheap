@@ -5,6 +5,10 @@
 
 #include <cassert>
 #include <cstddef>
+#include <vector>
+
+#define USE_DLLIST 1
+#define COLLECT_STATS 1
 
 /**
    ShimAllocator : adapter for Bloomberg allocators
@@ -25,11 +29,13 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
       : _allocations(0),
         _allocated(0),
         _frees(0),
-        _allocList(&_allocList, &_allocList) {}
+        _allocList(&_allocList, &_allocList) {
+    _allocVector.reserve(128 * 1024);
+    std::cout << "SHIM" << std::endl;
+  }
 
   ~ShimAllocator() {
     release();
-    // printStats();
   }
 
   void printStats() {
@@ -40,23 +46,36 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
   void rewind() = delete;
 
   void release() {
+#if USE_DLLIST
     // Iterate through the allocation list, freeing objects one at a time.
     header *p = _allocList.next;
     while (p != &_allocList) {
       header *q = p->next;
+#if COLLECT_STATS
       _frees++;
+#endif
       ::free(p);
       p = q;
     }
     // Reset the list to its original (empty) state.
     _allocList.prev = &_allocList;
     _allocList.next = &_allocList;
+#else
+    _frees += _allocVector.size();
+    for (auto i : _allocVector) {
+      ::free(i);
+    }
+    _allocVector.clear();
+#endif
   }
 
-  void *allocate(size_type sz) {
+  inline void *allocate(size_type sz) {
     assert(sz > 0);
+#if COLLECT_STATS
     _allocations++;
     _allocated += sz;
+#endif
+#if USE_DLLIST
     // Allocate extra space for the header, which is used to thread
     // this object into the doubly-linked allocation list.
     void *ptr = ::malloc(sz + sizeof(header));
@@ -65,16 +84,27 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
     _allocList.next = h;
     // Return memory just past the start of the header.
     return static_cast<void *>(h + 1);
+#else
+    void * ptr = ::malloc(sz);
+    _allocVector.push_back(ptr);
+    return ptr;
+#endif
   }
 
-  void deallocate(void *address) {
+  inline void deallocate(void *address) {
+#if COLLECT_STATS
     _frees++;
+#endif
+#if USE_DLLIST
     // Recover the header.
     header *h = reinterpret_cast<header *>(address) - 1;
     // Splice out of allocList.
     h->next->prev = h->prev;
     h->prev->next = h->next;
     ::free(h);
+#else
+    // FIXME - for now, no op
+#endif
   }
 
   template <class TYPE>
@@ -100,6 +130,8 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
     header *next;
   };
 
+  std::vector<void *> _allocVector;
+  
   header _allocList;  // the doubly-linked list containing all allocated objects
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
