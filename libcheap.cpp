@@ -110,4 +110,6 @@ extern "C" void __attribute__((always_inline)) xxmalloc_unlock() {
   getTheCustomHeap().unlock();
 }
 
+#if !defined(__APPLE__)
 #include "gnuwrapper.cpp"
+#endif
