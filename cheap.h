@@ -5,7 +5,10 @@
 #define THREAD_SAFE 1
 
 #include <stdlib.h>
+
+#if !defined(__APPLE__)
 #include <malloc.h>
+#endif
 
 #if defined(__cplusplus)
 
