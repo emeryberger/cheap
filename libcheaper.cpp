@@ -38,6 +38,58 @@ public:
   void unlock() {}
 };
 
+#if defined(__APPLE__)
+#include <mach/mach_init.h>
+#include <sys/sysctl.h>
+#include <mach/mach_vm.h>
+#include <mach-o/getsect.h>
+#include <stdio.h>
+#include <mach-o/dyld.h>
+#include <string.h>
+
+void * getBaseAddress() {
+    mach_port_name_t task;
+    vm_map_offset_t vmoffset;
+    vm_map_size_t vmsize;
+    uint32_t nesting_depth = 0;
+    struct vm_region_submap_info_64 vbr;
+    mach_msg_type_number_t vbrcount = 16;
+    kern_return_t kr;
+
+    task = current_task();
+    if ((kr = mach_vm_region_recurse(task, &vmoffset, &vmsize,
+                 &nesting_depth,
+                 (vm_region_recurse_info_t)&vbr,
+                 &vbrcount)) != KERN_SUCCESS) 
+    {
+        printf("FAIL");
+    }
+    return (void *) vmoffset;
+}
+
+uint64_t StaticBaseAddress()
+{
+    const struct segment_command_64* command = getsegbyname("__TEXT");
+    uint64_t addr = command->vmaddr;
+    return addr;
+}
+
+intptr_t ImageSlide()
+{
+    char path[1024];
+    uint32_t size = sizeof(path);
+    if (_NSGetExecutablePath(path, &size) != 0) return -1;
+    for (uint32_t i = 0; i < _dyld_image_count(); i++)
+    {
+        if (strcmp(_dyld_get_image_name(i), path) == 0)
+            return _dyld_get_image_vmaddr_slide(i);
+    }
+    return 0;
+}
+#endif
+
+void * baseAddress = 0x0;
+
 class InitializeMe {
 public:
   InitializeMe() {
@@ -49,8 +101,16 @@ public:
       unlink(output_filename);
       auto output_file =
           open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+#if defined(__APPLE__)
+      baseAddress = reinterpret_cast<void *>(StaticBaseAddress());
+      tprintf::tprintf("base address = @\n", baseAddress);
+      tprintf::tprintf("slide = @\n", (void *) ImageSlide());
+      //      baseAddress = getBaseAddress();
+      //      tprintf::tprintf("base address = @\n", baseAddress);
+#endif
       tprintf::FD = output_file;
       _isInitialized = true;
+
     }
   }
 
@@ -102,13 +162,19 @@ static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
   busy++;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
+#if 0 // defined(__APPLE__)
+  char **strs = backtrace_symbols(callstack, nframes);
+  for (auto i = 0; i < nframes; ++i) {
+    printf("%s\n", strs[i]);
+  }
+#endif
   busy--;
   // JSON doesn't allow trailing commas at the end,
   // which is stupid, but we have to deal with it.
   for (auto i = 0; i < nframes - 1; i++) {
-    tprintf::tprintf("@, ", (uintptr_t)callstack[i]);
+    tprintf::tprintf("@, ", (uintptr_t)callstack[i] - (uintptr_t) baseAddress);
   }
-  tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1]);
+  tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1] - (uintptr_t) baseAddress);
 }
 
 static bool printProlog(char action) {
@@ -225,4 +291,6 @@ extern "C" ATTRIBUTE_EXPORT void xxmalloc_unlock() {
   getTheCustomHeap().unlock();
 }
 
+#if !defined(__APPLE__)
 #include "gnuwrapper.cpp"
+#endif
