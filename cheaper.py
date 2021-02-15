@@ -108,10 +108,10 @@ class Cheaper:
             if len(item["threads"]) == 1:
                 flag_list.append("cheap::SINGLE_THREADED")
             flag_list.append("cheap::DISABLE_FREE") # for now, always included
-            outputstr = "cheap::cheap reg(" + " | ".join(flag_list)
+            outputstr = "cheap::cheap<" + " | ".join(flag_list)
             if len(item["sizes"]) == 1:
                 outputstr += ", " + str(list(item["sizes"])[0])
-            outputstr += ");"
+            outputstr += "> reg;"
             print(outputstr)
             print("=====")
 
@@ -123,8 +123,6 @@ class Cheaper:
             for stkaddr in i["stack"][-depth:]:
                 if stkaddr not in Cheaper.stack_info:
                     if platform == "darwin":
-                        print("YO")
-                        print(stkaddr, hex(stkaddr))
                         result = str(stkaddr) # FIXME symbolication still not working
                         if False:
                             result = subprocess.run(
