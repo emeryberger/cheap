@@ -89,7 +89,8 @@ intptr_t ImageSlide()
 #endif
 
 void * baseAddress = 0x0;
-
+char m_ExeFilename[PATH_MAX];
+	  
 class InitializeMe {
 public:
   InitializeMe() {
@@ -102,11 +103,19 @@ public:
       auto output_file =
           open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
 #if defined(__APPLE__)
-      baseAddress = reinterpret_cast<void *>(StaticBaseAddress());
+      baseAddress = reinterpret_cast<void *>((uintptr_t) getBaseAddress() + (uintptr_t) ImageSlide());
       tprintf::tprintf("base address = @\n", baseAddress);
       tprintf::tprintf("slide = @\n", (void *) ImageSlide());
-      //      baseAddress = getBaseAddress();
-      //      tprintf::tprintf("base address = @\n", baseAddress);
+      tprintf::tprintf("sum = @\n", (uintptr_t) baseAddress + (uintptr_t) (ImageSlide()));
+      // baseAddress = 0; // getBaseAddress();
+      //      baseAddress = (void *) 4294982624; // FIXME
+      char path[ PATH_MAX ];
+      uint32_t size = sizeof( path );
+      if (_NSGetExecutablePath(path, &size) == 0) {
+	if (!realpath(path, m_ExeFilename)) {
+	    strcpy(m_ExeFilename, path);
+	}
+      }
 #endif
       tprintf::FD = output_file;
       _isInitialized = true;
@@ -158,16 +167,94 @@ std::atomic<bool> WeAreOuttaHere::weAreOut{false};
 
 static std::atomic<bool> firstDone{false};
 
+#include <cxxabi.h>
+#include <iostream>
+#include <stdio.h>
+
+#if defined(__APPLE__)
+    // Execute cmd store stdout into buf (up to bufSize).
+    int Execute( const char * cmd, char * buf, size_t bufSize )
+    {
+        char filename[ 512 ];
+        sprintf( filename, "%d.tmp", rand( ) );
+
+        if ( FILE * file = fopen( filename, "w" ) )
+        {
+            if ( FILE * ptr = popen( cmd, "r" ) ) 
+            {
+                while ( fgets( buf, bufSize, ptr ) != NULL )
+                {
+                    fprintf( file, "%s", buf );
+                }
+                pclose( ptr );
+            }
+            fclose( file );
+
+	    unlink( filename );
+
+            return 0;   
+        }
+
+        return -1;
+    }
+
+    // Resolve symbol name and source location given the path to the executable and an address
+    int Addr2Line(char const * const program_name, void const * const addr, char * buff, size_t buffSize )
+    {
+        char addr2line_cmd[512] = {0};
+        sprintf( addr2line_cmd, "atos -o %.256s %p", program_name, addr );
+	printf("command = %s\n", addr2line_cmd);
+        return Execute( addr2line_cmd, buff, buffSize );
+    }
+
+#endif
+
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
   busy++;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
-#if 0 // defined(__APPLE__)
+#if defined(__APPLE__)
+  int status;
+  size_t len = 256;
   char **strs = backtrace_symbols(callstack, nframes);
+  char buff[1024];
+  char filename[256];
+  void * address;
+  char symbol[256];
+  uint32_t symbolOffset;
   for (auto i = 0; i < nframes; ++i) {
-    printf("%s\n", strs[i]);
-  }
+    auto result = sscanf(strs[i], "%*d%*[ \t]%s%*[ \t]%p%*[ \t]%s%*[ \t]+%*[ \t]%d", filename, &address, symbol, &symbolOffset);
+    if (result == 0) {
+      printf("FAILED SCAN\n");
+    }
+    auto addr = (void *) ((uintptr_t) address); //  symbolOffset); //  - (uintptr_t) baseAddress - symbolOffset);
+#if 0
+    int v = Addr2Line(m_ExeFilename,
+		      addr, //  - (uintptr_t) baseAddress),
+		      buff,
+		      1024); // callstack[i] was addr
+    printf("buf = %s\n", buff);
 #endif
+    char * buf = reinterpret_cast<char *>(::malloc(256));
+    char str[256];
+    strcpy(str, symbol);
+    char * tok = strtok(str, " ");
+    char * demangled = abi::__cxa_demangle(tok, buf, &len, &status);
+    char * symbolToPrint;
+    if (status == 0) {
+      symbolToPrint = demangled;
+    } else {
+      symbolToPrint = tok;
+    }
+    if (i < nframes - 1) {
+      tprintf::tprintf("\"@\", ", symbolToPrint);
+    } else {
+      tprintf::tprintf("\"@\"", symbolToPrint);
+    }
+    ::free(demangled);
+  }
+  busy--;
+#else
   busy--;
   // JSON doesn't allow trailing commas at the end,
   // which is stupid, but we have to deal with it.
@@ -175,6 +262,7 @@ static void printStack() {
     tprintf::tprintf("@, ", (uintptr_t)callstack[i] - (uintptr_t) baseAddress);
   }
   tprintf::tprintf("@", (uintptr_t)callstack[nframes - 1] - (uintptr_t) baseAddress);
+#endif
 }
 
 static bool printProlog(char action) {
