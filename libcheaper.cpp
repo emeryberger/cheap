@@ -90,7 +90,19 @@ intptr_t ImageSlide()
 
 void * baseAddress = 0x0;
 char m_ExeFilename[PATH_MAX];
-	  
+
+
+#include "backtrace.h"
+
+backtrace_state * btState;
+const char fname[] = "program";
+
+void btError(void * data, const char * msg, int errnum)
+{
+  printf("btError\n");
+  //  return nullptr;
+}
+
 class InitializeMe {
 public:
   InitializeMe() {
@@ -118,6 +130,7 @@ public:
       }
 #endif
       tprintf::FD = output_file;
+      btState = backtrace_create_state(fname, true, btError, nullptr);
       _isInitialized = true;
 
     }
@@ -209,11 +222,33 @@ static std::atomic<bool> firstDone{false};
 
 #endif
 
+
+int btFullCallback(void * data, uintptr_t pc, const char * filename, int lineno, const char * function)
+{
+  char buf[1024];
+  size_t len = 1024;
+  int status;
+  if (!filename) {
+    // No debugging info; skip.
+    return 0;
+  }
+  char * demangled_function = abi::__cxa_demangle(function, nullptr, nullptr, &status);
+  if (status == 0) {
+    snprintf(buf, 1024, "[%s] %s:%d", demangled_function, filename, lineno);
+    ::free(demangled_function);
+  } else {
+    snprintf(buf, 1024, "[%s] %s:%d", function, filename, lineno);
+  }
+  tprintf::tprintf("\"@\", ", buf);
+  return 0;
+}
+
 static void printStack() {
   void *callstack[MAX_STACK_LENGTH];
   busy++;
   auto nframes = backtrace(callstack, MAX_STACK_LENGTH);
 #if defined(__APPLE__)
+#if 0
   int status;
   size_t len = 256;
   char **strs = backtrace_symbols(callstack, nframes);
@@ -222,7 +257,7 @@ static void printStack() {
   void * address;
   char symbol[256];
   uint32_t symbolOffset;
-  for (auto i = 0; i < nframes; ++i) {
+  for (auto i = 2; i < nframes; ++i) {
     auto result = sscanf(strs[i], "%*d%*[ \t]%s%*[ \t]%p%*[ \t]%s%*[ \t]+%*[ \t]%d", filename, &address, symbol, &symbolOffset);
     if (result == 0) {
       printf("FAILED SCAN\n");
@@ -253,6 +288,11 @@ static void printStack() {
     }
     ::free(demangled);
   }
+#else
+  auto r = backtrace_full(btState, 2, btFullCallback, btError, nullptr);
+  // Now print a bogus stack with no commas, just to make JSON processing happy.
+  tprintf::tprintf("\"CHEAPERBAD\""); // Filtered out by cheaper.py
+#endif
   busy--;
 #else
   busy--;

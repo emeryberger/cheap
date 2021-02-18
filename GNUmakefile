@@ -6,6 +6,14 @@ all:
 	-make -f cheap.mk
 	-make -f cheaper.mk
 
+vendor:
+	-mkdir vendor
+	-cd vendor
+	git clone https://github.com/ianlancetaylor/libbacktrace.git
+	cd libbacktrace
+	./configure CFLAGS='-arch x86_64 -arch arm64'
+	make
+
 format: $(SOURCES)
 	clang-format -i $(SOURCES)
 	black cheaper.py
