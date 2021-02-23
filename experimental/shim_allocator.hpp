@@ -6,9 +6,12 @@
 #include <cassert>
 #include <cstddef>
 #include <vector>
+#include <iostream>
 
 #define USE_DLLIST 1
-#define COLLECT_STATS 1
+#define COLLECT_STATS 0  // FIXME
+
+using namespace BloombergLP;
 
 /**
    ShimAllocator : adapter for Bloomberg allocators
@@ -23,29 +26,39 @@
 
  */
 
-class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
+class ShimAllocator : public bdlma::ManagedAllocator {
  public:
-  ShimAllocator(BloombergLP::bslma::Allocator *)
+
+  ShimAllocator(bslma::Allocator *)
       : _allocations(0),
         _allocated(0),
         _frees(0),
         _allocList(&_allocList, &_allocList) {
+#if !USE_DLLIST
     _allocVector.reserve(128 * 1024);
-    std::cout << "SHIM" << std::endl;
+#endif
+    //    std::cout << "SHIM" << std::endl;
   }
 
-  ~ShimAllocator() {
+  virtual ~ShimAllocator() {
     release();
+    printStats();
   }
 
   void printStats() {
+#if !COLLECT_STATS
+#else
     std::cout << _allocations << " allocations (" << _allocated
               << " allocated), " << _frees << " frees\n";
+#endif
   }
 
-  void rewind() = delete;
+  virtual void rewind() {
+    // rewind is the equivalent of release here, since we do not maintain internal buffers.
+    release();
+  }
 
-  void release() {
+  virtual void release() {
 #if USE_DLLIST
     // Iterate through the allocation list, freeing objects one at a time.
     header *p = _allocList.next;
@@ -67,12 +80,20 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
     }
     _allocVector.clear();
 #endif
+    // printStats();
   }
 
-  inline void *allocate(size_type sz) {
-    assert(sz > 0);
+#warning "including the shim"
+  
+  inline virtual void *allocate(size_type sz) {
+    if (sz == 0) {
+      return nullptr;
+    }
 #if COLLECT_STATS
     _allocations++;
+    if (_allocations % 100000 == 0) {
+      printf("Shim allocation: %d (%ld)\n", _allocations, sz);
+    }
     _allocated += sz;
 #endif
 #if USE_DLLIST
@@ -91,7 +112,10 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
 #endif
   }
 
-  inline void deallocate(void *address) {
+  inline virtual void deallocate(void *address) {
+    if (address == nullptr) {
+      return;
+    }
 #if COLLECT_STATS
     _frees++;
 #endif
@@ -109,15 +133,17 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
 
   template <class TYPE>
   void deleteObject(const TYPE *object) {
-    delete object;
+    object->~TYPE();
+    deallocate(object);
   }
-  void deleteObject(bsl::nullptr_t ptr) { ::free(ptr); }
+  void deleteObject(bsl::nullptr_t ptr) {}
 
   template <class TYPE>
   void deleteObjectRaw(const TYPE *object) {
-    delete object;
+    object->~TYPE();
+    deallocate(object);
   }
-  void deleteObjectRaw(bsl::nullptr_t ptr) { ::free(ptr); }
+  void deleteObjectRaw(bsl::nullptr_t ptr) {}
 
  private:
   class header {
@@ -130,7 +156,9 @@ class ShimAllocator : public BloombergLP::bdlma::ManagedAllocator {
     header *next;
   };
 
+#if !USE_DLLIST
   std::vector<void *> _allocVector;
+#endif
   
   header _allocList;  // the doubly-linked list containing all allocated objects
   size_t _allocations;  // total number of allocations
