@@ -6,6 +6,7 @@
 #define COLLECT_STATS 0  // FIXME
 #define REPORT_STATS 0
 
+#include <cstdlib>
 #include <cstdio>
 
 #include <bdlscm_version.h>
