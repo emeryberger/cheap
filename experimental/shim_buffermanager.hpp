@@ -204,6 +204,23 @@ class ShimBufferManager {
         // bytes) after taking the alignment strategy into consideration, and
         // 'false' otherwise.  The behavior is undefined unless '0 < size', and
         // this object is currently managing a buffer.
+
+  void printStats() {
+#if REPORT_STATS
+#if !COLLECT_STATS
+#else
+    std::cout << "Statistics for ShimBufferManager " << this << std::endl;
+    std::cout << "-------------------------------------------" << std::endl;
+    std::cout << "allocations:\t" << _allocations << std::endl;
+    std::cout << "alloc-bytes:\t" << _allocated << std::endl;
+    std::cout << "deallocations:\t" << _deallocations << std::endl;
+    std::cout << "frees:        \t" << _frees << std::endl;
+    std::cout << "rewinds:\t" << _rewinds << std::endl;
+    std::cout << "releases:\t" << _releases << std::endl;
+#endif
+#endif
+  }
+  
 };
 
 // ============================================================================
@@ -266,6 +283,8 @@ ShimBufferManager::ShimBufferManager(char                      *buffer,
 inline
 ShimBufferManager::~ShimBufferManager()
 {
+  release();
+  printStats();
 }
 
 // MANIPULATORS
