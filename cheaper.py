@@ -24,6 +24,10 @@ class Cheaper:
     # For measuring page-level fragmentation, currently disabled.
     __pagesize = 4096
 
+    # If the stack traces are already provided in the trace.
+    # You might want to set this to true if generating the trace with a different tool.
+    __stacktraces_provided = True
+
     stack_info = {}
 
     @staticmethod
@@ -37,7 +41,7 @@ class Cheaper:
             description=usage,
             formatter_class=argparse.RawTextHelpFormatter,
         )
-        parser.add_argument("--progname", help="path to executable", required=True)
+        parser.add_argument("--progname", help="path to executable", required=not Cheaper.__stacktraces_provided)
         parser.add_argument(
             "--threshold-mallocs", help="threshold allocations to report", default=100
         )
@@ -50,11 +54,11 @@ class Cheaper:
 
         args = parser.parse_args()
 
-        if not args.progname:
+        if not Cheaper.__stacktraces_provided and not args.progname:
             parser.print_help()
             sys.exit(-1)
 
-        if not os.path.isfile(args.progname):
+        if not Cheaper.__stacktraces_provided and not os.path.isfile(args.progname):
             print("File " + args.progname + " does not exist.")
             sys.exit(-1)
 
@@ -68,7 +72,8 @@ class Cheaper:
         with open(Cheaper.__output_filename, "r") as f:
             x = jsonlib.load(f)
         analyzed = []
-        Cheaper.resolve_addresses(x["trace"], progname, depth)
+        if not Cheaper.__stacktraces_provided:
+            Cheaper.resolve_addresses(x["trace"], progname, depth)
         for d in reversed(range(1, depth)):
             # print("FIXME analyzing depth " + str(d))
             a = Cheaper.process_trace(
@@ -108,12 +113,12 @@ class Cheaper:
             if len(item["threads"]) == 1:
                 flag_list.append("cheap::SINGLE_THREADED")
             flag_list.append("cheap::DISABLE_FREE") # for now, always included
-            outputstr = "cheap::cheap reg(" + " | ".join(flag_list)
+            outputstr = "cheap::cheap<" + " | ".join(flag_list)
             if len(item["sizes"]) == 1:
                 outputstr += ", " + str(list(item["sizes"])[0])
-            outputstr += ");"
+            outputstr += "> reg;"
             print(outputstr)
-            print("=====")
+            print("=====\n")
 
     @staticmethod
     def resolve_addresses(trace, progname, depth):
@@ -123,16 +128,22 @@ class Cheaper:
             for stkaddr in i["stack"][-depth:]:
                 if stkaddr not in Cheaper.stack_info:
                     if platform == "darwin":
-                        result = subprocess.run(
-                            ["atos", "-o", progname, hex(stkaddr)],
-                            stdout=subprocess.PIPE,
-                        )
+                        result = str(stkaddr) # FIXME symbolication still not working
+                        if False:
+                            result = subprocess.run(
+                                ["atos", "-o", progname, hex(stkaddr)],
+                                stdout=subprocess.PIPE,
+                            )
                     else:
                         result = subprocess.run(
                             ["addr2line", hex(stkaddr), "-C", "-e", progname],
                             stdout=subprocess.PIPE,
                         )
-                    Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
+                    if platform == "darwin":
+                        # Using stdout currently disabled
+                        Cheaper.stack_info[stkaddr] = result
+                    else:
+                        Cheaper.stack_info[stkaddr] = result.stdout.decode("utf-8").strip()
                     # If it failed to resolve symbols, use the address instead
                     if "?" in Cheaper.stack_info[stkaddr]:
                         Cheaper.stack_info[stkaddr] = "CHEAPERBAD " + str(hex(stkaddr))
@@ -264,7 +275,7 @@ class Cheaper:
         # Separate each trace by its complete stack signature.
         for i in trace:
             stk = [
-                Cheaper.stack_info[k] for k in i["stack"][-depth:]
+                k if Cheaper.__stacktraces_provided else Cheaper.stack_info[k] for k in i["stack"][-depth:]
             ]
             if len(stk) != depth:
                 continue
