@@ -2,9 +2,15 @@ SOURCES = libcheaper.cpp libcheap.cpp cheap.h
 
 .PHONY: all format test
 
-all:
+all: vendor
 	-make -f cheap.mk
 	-make -f cheaper.mk
+
+vendor:
+	mkdir vendor
+	cd vendor && git clone https://github.com/ianlancetaylor/libbacktrace.git
+	cd vendor/libbacktrace && ./configure CFLAGS='-arch x86_64' CC='clang' && make
+# cd vendor/libbacktrace && ./configure CFLAGS='-arch x86_64 -arch arm64' CC='clang' && make
 
 format: $(SOURCES)
 	clang-format -i $(SOURCES)
