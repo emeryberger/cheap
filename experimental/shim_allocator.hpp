@@ -3,6 +3,8 @@
 #ifndef SHIM_ALLOCATOR_HPP
 #define SHIM_ALLOCATOR_HPP
 
+#include "tprintf.h"
+
 #define USE_ORIGINAL 0
 
 #if USE_ORIGINAL
@@ -18,7 +20,7 @@
 
 #include <execinfo.h>
 
-#define USE_DLLIST 1
+#define USE_DLLIST 0
 #define COLLECT_STATS 0  // FIXME
 #define REPORT_STATS 0
 
@@ -48,11 +50,17 @@ using namespace BloombergLP;
 
  */
 
-class ShimAllocator : public bdlma::ManagedAllocator {
+class ShimAllocator : public bslma::Allocator {
+// bdlma::ManagedAllocator {
  public:
 
   // Constructors to match BufferedSequentialAllocator constructors.
   // (We discard everything)
+
+  typedef std::false_type propagate_on_container_copy_assignment;
+  typedef std::true_type propagate_on_container_move_assignment;
+  typedef std::true_type propagate_on_container_swap;
+  typedef std::false_type is_always_equal;
   
   ShimAllocator(char *,
 		bsls::Types::size_type size,
@@ -81,29 +89,32 @@ class ShimAllocator : public bdlma::ManagedAllocator {
 		bslma::Allocator            *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
-  
-  ShimAllocator(bslma::Allocator *)
-    : ShimAllocator()
-  {}
-  
-  ShimAllocator()
-      :
+
+  ShimAllocator(bslma::Allocator * = 0)
+    :
+#if USE_DLLIST
+    _allocList (new header)
+#else
+    _allocVector (new std::vector<void *>)
+#endif
 #if COLLECT_STATS
-    _allocations(0),
+    ,
+      _allocations(0),
     _allocated(0),
     _frees(0),
     _deallocations(0),
     _rewinds(0),
-    _releases(0),
+    _releases(0)
 #endif
-    _allocList(&_allocList, &_allocList) {
+  {
 #if !USE_DLLIST
-    _allocVector.reserve(128 * 1024);
+    _allocVector->reserve(8); // 128); //  * 1024);
 #endif
-    //    std::cout << "SHIM" << std::endl;
+    //        std::cout << "SHIM" << std::endl;
   }
 
   virtual ~ShimAllocator() {
+    //    tprintf::tprintf("SHIM DESTRUCTION\n");
 #if 0
     if (_allocations == 0) {
       void * frames[16];
@@ -113,6 +124,11 @@ class ShimAllocator : public bdlma::ManagedAllocator {
 #endif
     release();
     printStats();
+#if USE_DLLIST
+    delete _allocList;
+#else
+    delete _allocVector;
+#endif
   }
 
   void printStats() {
@@ -140,39 +156,55 @@ class ShimAllocator : public bdlma::ManagedAllocator {
   }
 
   virtual void release() {
+    // tprintf::tprintf("RELEASE : this = @\n", this);
 #if COLLECT_STATS
     _releases++;
 #endif
 #if USE_DLLIST
+    if (!_allocList) {
+      return;
+    }
     // Iterate through the allocation list, freeing objects one at a time.
-    header *p = _allocList.next;
-    while (p != &_allocList) {
-      header *q = p->next;
+    header *p = _allocList->begin();
+    // tprintf::tprintf("p = @, &allocList = @\n", p, _allocList);
+    while (p) {
+      header *q = p->getNext();
 #if COLLECT_STATS
       _frees++;
 #endif
+      //tprintf::tprintf("RELEASE @: ABOUT TO FREE @\n", this, p);
       ::free(p);
       p = q;
     }
     // Reset the list to its original (empty) state.
-    _allocList.prev = &_allocList;
-    _allocList.next = &_allocList;
+    _allocList->clear();
 #else
-    _frees += _allocVector.size();
-    for (auto i : _allocVector) {
-      ::free(i);
+#if COLLECT_STATS
+    _frees += _allocVector->size();
+#endif
+    if (_allocVector) {
+      for (auto p : *_allocVector) {
+	//	tprintf::tprintf("RELEASE @: ABOUT TO FREE @\n", this, p);
+	::free(p);
+      }
+      _allocVector->clear();
     }
-    _allocVector.clear();
 #endif
     // printStats();
   }
 
 #warning "including the shim"
+
+  inline constexpr size_t align(size_t sz) {
+    return (sz + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
+  }
   
-  inline virtual void *allocate(size_type sz) {
+  inline void *allocate(size_type sz) {
+    //    tprintf::tprintf("SHIM ALLOCATE: this = @\n", this);
     if (sz == 0) {
       return nullptr;
     }
+    sz = align(sz);
 #if COLLECT_STATS
     _allocations++;
 #if 0
@@ -186,19 +218,30 @@ class ShimAllocator : public bdlma::ManagedAllocator {
     // Allocate extra space for the header, which is used to thread
     // this object into the doubly-linked allocation list.
     void *ptr = ::malloc(sz + sizeof(header));
-    header *h = new (ptr) header(&_allocList, _allocList.next);
-    _allocList.next->prev = h;
-    _allocList.next = h;
+    _allocList->push(ptr);
     // Return memory just past the start of the header.
-    return static_cast<void *>(h + 1);
+    //    tprintf::tprintf("allocated @ for @ (really @), returning @\n", ptr, sz, sz + sizeof(header), h + 1);
+    return static_cast<void *>((header *) ptr + 1);
 #else
     void * ptr = ::malloc(sz);
-    _allocVector.push_back(ptr);
+    _allocVector->push_back(ptr);
     return ptr;
 #endif
   }
 
-  inline virtual void deallocate(void *address) {
+  inline void * malloc(size_type sz) {
+    return allocate(sz);
+  }
+
+  inline void free(void * ptr) {
+    return;
+    deallocate(ptr);
+  }
+  
+  inline void deallocate(void *address) {
+    return;
+#if 0
+    tprintf::tprintf("SHIM DEALLOCATE\n");
     if (address == nullptr) {
       return;
     }
@@ -210,50 +253,136 @@ class ShimAllocator : public bdlma::ManagedAllocator {
     // Recover the header.
     header *h = reinterpret_cast<header *>(address) - 1;
     // Splice out of allocList.
-    h->next->prev = h->prev;
-    h->prev->next = h->next;
+    // h->remove();
+    tprintf::tprintf("deallocate about to free @\n", h);
     ::free(h);
 #else
     // FIXME - for now, no op
+#endif
 #endif
   }
 
   template <class TYPE>
   void deleteObject(const TYPE *object) {
+#if 0
     object->~TYPE();
     deallocate(object);
+#endif
   }
   void deleteObject(bsl::nullptr_t ptr) {}
 
   template <class TYPE>
   void deleteObjectRaw(const TYPE *object) {
+#if 0
     object->~TYPE();
     deallocate(object);
+#endif
   }
   void deleteObjectRaw(bsl::nullptr_t ptr) {}
 
+  ShimAllocator(const ShimAllocator& that) noexcept {
+#if USE_DLLIST
+    if (_allocList) {
+      ///      release();
+    }
+    _allocList = new header();
+    //    _allocList = that._allocList; // new header();
+#else
+    _allocVector = new std::vector<void *>;
+#endif
+  }
+
+  ShimAllocator(ShimAllocator&& that) noexcept {
+#if USE_DLLIST
+    that._allocList = new header();
+#endif
+  }
+  
+  ShimAllocator& operator=(const ShimAllocator& that) noexcept {
+    return *this;
+  }
+  
+  ShimAllocator& operator=(ShimAllocator&& that) noexcept {
+    release();
+#if USE_DLLIST
+    _allocList = that._allocList;
+    that._allocList = new header();
+#endif
+    return *this;
+  }
+
+ 
  private:
+
   class header {
    public:
-    header(header *prev_, header *next_) {
-      prev = prev_;
-      next = next_;
+    header()
+      : _next(nullptr)
+    {}
+    header(header *next_)
+      : _next(next_)
+    {
+      // tprintf::tprintf("setting header prev=@, next=@\n", _prev, _next);
     }
-    alignas(std::max_align_t) header *prev;
-    header *next;
+    void clear() {
+      _next = nullptr;
+    }
+    bool atEnd(header * p) const {
+      return p == nullptr;
+    }
+    header * begin() {
+      return _next;
+    }
+    header * getNext() {
+      return _next;
+    }
+    header * push(void * ptr) {
+      auto h = new (ptr) header(_next);
+      _next = h;
+      return h;
+    }
+  private:    
+    void remove() {
+    }
+    alignas(std::max_align_t) header * _next;
   };
 
+  friend bool operator==(const ShimAllocator& dis, const ShimAllocator& dat);
+  friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat);
+  
 #if !USE_DLLIST
-  std::vector<void *> _allocVector;
+  std::vector<void *> * _allocVector { nullptr };
+#else
+  header * _allocList { nullptr };  // the doubly-linked list containing all allocated objects
 #endif
   
-  header _allocList;  // the doubly-linked list containing all allocated objects
+#if COLLECT_STATS
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
   size_t _frees;        // total number of frees
   size_t _deallocations;
   size_t _releases;
   size_t _rewinds;
+#endif
 };
+
+bool operator==(const ShimAllocator& dis, const ShimAllocator& dat) {
+  printf("OPERATOR==\n");
+#if USE_DLLIST
+  return dis._allocList == dat._allocList;
+#else
+  return dis._allocVector == dat._allocVector;
+#endif
+}
+  
+bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
+  printf("OPERATOR!=\n");
+#if USE_DLLIST
+  return dis._allocList != dat._allocList;
+#else
+  return dis._allocVector != dat._allocVector;
+#endif
+}
+  
 
 #endif  // SHIM_ALLOCATOR_HPP
