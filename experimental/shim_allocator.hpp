@@ -61,7 +61,7 @@ class ShimAllocator : public bslma::Allocator {
   typedef std::true_type propagate_on_container_move_assignment;
   typedef std::true_type propagate_on_container_swap;
   typedef std::false_type is_always_equal;
-  
+
   ShimAllocator(char *,
 		bsls::Types::size_type size,
 		bslma::Allocator * basicAllocator = 0)
@@ -197,6 +197,47 @@ class ShimAllocator : public bslma::Allocator {
 
   inline constexpr size_t align(size_t sz) {
     return (sz + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
+  }
+
+  inline void *allocateAndExpand(int * size)
+  {
+    if (*size == 0) {
+      return nullptr;
+    }
+    *size = align(*size);
+    return allocate(*size);
+  }
+
+  inline void * allocateAndExpand(int * sz,
+				  int maxNumBytes)
+  {
+    // Undefined behavior if align(sz) > maxNumBytes
+    return allocateAndExpand(sz);
+  }
+
+  inline int expand(void * address,
+		    int originalNumBytes)
+  {
+    // Return the max amount already available.
+    return align(originalNumBytes);
+  }
+
+  inline int expand(void * address,
+		    int originalNumBytes,
+		    int maxNumBytes)
+  {
+    return expand(address, originalNumBytes);
+  }
+
+  virtual void reserveCapacity(int numBytes) {
+  }
+
+  inline int truncate(void * address,
+		      int originalNumBytes,
+		      int newNumBytes)
+  {
+    // Do nothing with the object's size - just return the original size.
+    return align(originalNumBytes);
   }
   
   inline void *allocate(size_type sz) {
