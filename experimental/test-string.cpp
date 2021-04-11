@@ -31,16 +31,17 @@ public:
 int main()
 {
   //  using allocatorType = BloombergLP::bslma::TestAllocator; // BufferedSequentialAllocator;
-  for (int i = 0; i < 100000; i++) {
 #if USE_BUFFERED
-    char buf[1024*100];
-    allocatorType alloc(buf, 1024*100);
+  char buf[1024*100];
+  allocatorType alloc(buf, 1024*100);
 #elif USE_NEWDELETE
-    allocatorType alloc;
+  allocatorType alloc;
 #elif USE_SHIM
-    allocatorType alloc;
+  allocatorType alloc;
 #endif
-
+  
+  for (int i = 0; i < 100000; i++) {
+    alloc.rewind();
     for (int j = 0; j < 100; j++) {
       volatile bsl::string bs1 ("The quick brown fox jumps over the lazy dog", &alloc);
       volatile bsl::string bs2 ("Portez ce vieux whisky au juge blond qui fume", &alloc);
