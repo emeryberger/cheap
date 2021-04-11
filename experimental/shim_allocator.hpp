@@ -35,6 +35,8 @@
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
 
+#include "simregion.hpp"
+
 using namespace BloombergLP;
 
 /**
@@ -49,8 +51,6 @@ using namespace BloombergLP;
    * these are then removed from the doubly-linked list.
 
  */
-
-#include "shimregion.hpp"
 
 class ShimAllocator : public bslma::Allocator {
 // bdlma::ManagedAllocator {
@@ -94,7 +94,7 @@ class ShimAllocator : public bslma::Allocator {
 
   ShimAllocator(bslma::Allocator * = 0)
     :
-    _allocVector (new SimRegion<0>)
+    _allocVector (new SimRegion<>)
   {
   }
 
@@ -139,7 +139,6 @@ class ShimAllocator : public bslma::Allocator {
     if (_allocVector) {
       _allocVector->release();
     }
-#endif
     // printStats();
   }
 
@@ -150,8 +149,9 @@ class ShimAllocator : public bslma::Allocator {
     if (*size == 0) {
       return nullptr;
     }
-    *size = align(*size);
-    return allocate(*size);
+    auto ptr = allocate(*size);
+    *size = SimRegion<>::getSize(ptr);
+    return ptr;
   }
 
   inline void * allocateAndExpand(int * sz,
@@ -165,7 +165,7 @@ class ShimAllocator : public bslma::Allocator {
 		    int originalNumBytes)
   {
     // Return the max amount already available.
-    return align(originalNumBytes);
+    return SimRegion<>::getSize(address); // align(originalNumBytes);
   }
 
   inline int expand(void * address,
@@ -183,7 +183,7 @@ class ShimAllocator : public bslma::Allocator {
 		      int newNumBytes)
   {
     // Do nothing with the object's size - just return the original size.
-    return align(originalNumBytes);
+    return SimRegion<>::getSize(address);
   }
   
   inline void *allocate(size_type sz) {
@@ -234,7 +234,7 @@ class ShimAllocator : public bslma::Allocator {
   void deleteObjectRaw(bsl::nullptr_t ptr) {}
 
   ShimAllocator(const ShimAllocator& that) noexcept {
-    _allocVector = new _allocVector<0>;
+    _allocVector = new SimRegion<>;
   }
 
   ShimAllocator(ShimAllocator&& that) noexcept {
@@ -255,7 +255,7 @@ class ShimAllocator : public bslma::Allocator {
   friend bool operator==(const ShimAllocator& dis, const ShimAllocator& dat);
   friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat);
   
-  SimRegion<0> * _allocVector { nullptr };
+  SimRegion<> * _allocVector { nullptr };
   
 #if COLLECT_STATS
   size_t _allocations {0};  // total number of allocations
