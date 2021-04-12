@@ -5,7 +5,11 @@
 
 #include <algorithm>
 #include <vector>
+#ifndef __APPLE__
 #include <malloc.h>
+#else
+#include <malloc/malloc.h>
+#endif
 
 static constexpr int VECTOR_INITIAL_SIZE = 0;
 
@@ -28,7 +32,11 @@ public:
   }
 
   static inline size_t getSize(void * ptr) {
+#ifndef __APPLE__
     return ::malloc_usable_size(ptr);
+#else
+    return ::malloc_size(ptr);
+#endif
   }
   
   inline void * malloc(size_t sz) {
