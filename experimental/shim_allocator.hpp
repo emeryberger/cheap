@@ -94,7 +94,7 @@ class ShimAllocator : public bslma::Allocator {
 
   ShimAllocator(bslma::Allocator * = 0)
     :
-    _allocVector (new SimRegion<>)
+    _allocVector (new SimRegion<SIZE>)
   {
   }
 
@@ -150,7 +150,7 @@ class ShimAllocator : public bslma::Allocator {
       return nullptr;
     }
     auto ptr = allocate(*size);
-    *size = SimRegion<>::getSize(ptr);
+    *size = SimRegion<SIZE>::getSize(ptr);
     return ptr;
   }
 
@@ -165,7 +165,7 @@ class ShimAllocator : public bslma::Allocator {
 		    int originalNumBytes)
   {
     // Return the max amount already available.
-    return SimRegion<>::getSize(address); // align(originalNumBytes);
+    return SimRegion<SIZE>::getSize(address); // align(originalNumBytes);
   }
 
   inline int expand(void * address,
@@ -183,7 +183,7 @@ class ShimAllocator : public bslma::Allocator {
 		      int newNumBytes)
   {
     // Do nothing with the object's size - just return the original size.
-    return SimRegion<>::getSize(address);
+    return SimRegion<SIZE>::getSize(address);
   }
   
   inline void *allocate(size_type sz) {
@@ -234,7 +234,7 @@ class ShimAllocator : public bslma::Allocator {
   void deleteObjectRaw(bsl::nullptr_t ptr) {}
 
   ShimAllocator(const ShimAllocator& that) noexcept {
-    _allocVector = new SimRegion<>;
+    _allocVector = new SimRegion<SIZE>;
   }
 
   ShimAllocator(ShimAllocator&& that) noexcept {
@@ -254,8 +254,9 @@ class ShimAllocator : public bslma::Allocator {
 
   friend bool operator==(const ShimAllocator& dis, const ShimAllocator& dat);
   friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat);
-  
-  SimRegion<> * _allocVector { nullptr };
+
+  static constexpr int SIZE = 32; // 64;
+  SimRegion<SIZE> * _allocVector { nullptr };
   
 #if COLLECT_STATS
   size_t _allocations {0};  // total number of allocations
