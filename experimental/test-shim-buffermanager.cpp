@@ -11,11 +11,11 @@
 
 #include "shim_buffermanager.hpp"
 
-#include "fragmenter.hpp"
+#include "shuffler.hpp"
 
 #if !defined(USE_BUFFER) && !defined(USE_SHIM)
-#define USE_BUFFER 1
-#define USE_SHIM 0
+#define USE_BUFFER 0
+#define USE_SHIM 1
 #endif
 
 #if USE_BUFFER + USE_SHIM != 1
@@ -36,10 +36,10 @@ int main()
 {
   constexpr int ObjectSize = 64;
   constexpr int Iterations = 1000;
-  // Fragmenter<ObjectSize, ObjectSize, 1000000, 999, 1000, SHUFFLE> frag;
-  // Fragmenter<ObjectSize, ObjectSize, 1000000, 500, 1000, SHUFFLE> frag;
-  Fragmenter<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
-  //Fragmenter<ObjectSize, ObjectSize, 1000000, 50, 1000, SHUFFLE> frag;
+  // Shuffler<ObjectSize, ObjectSize, 1000000, 999, 1000, SHUFFLE> frag;
+  // Shuffler<ObjectSize, ObjectSize, 1000000, 500, 1000, SHUFFLE> frag;
+  Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
+  //Shuffler<ObjectSize, ObjectSize, 1000000, 50, 1000, SHUFFLE> frag;
   std::cout << "starting " << getpid() << std::endl;
 
 #if USE_BUFFER
@@ -57,8 +57,8 @@ int main()
   
   using namespace BloombergLP;
   char * buf = new char[Iterations * ObjectSize];
-    for (auto it = 0; it < 10000000; it++) {
-  //for (auto it = 0; it < 1000000; it++) {
+  //    for (auto it = 0; it < 10000000; it++) {
+  for (auto it = 0; it < 1000000; it++) {
 #if USE_BUFFER
     BloombergLP::bdlma::BufferManager mgr(buf, Iterations*ObjectSize);
 #elif USE_SHIM
