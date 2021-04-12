@@ -52,7 +52,7 @@ class ShimBufferManager {
                                                  // alignment calculation
 
   static constexpr int SIZE = 8;
-  SimRegion<SIZE> * _allocVector { nullptr };
+  SimRegion * _allocVector { nullptr };
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
   size_t _frees;        // total number of frees
@@ -243,7 +243,7 @@ ShimBufferManager::ShimBufferManager(bsls::Alignment::Strategy strategy)
     _rewinds(0),
     _releases(0),
 #endif
-  _allocVector (new SimRegion<SIZE>)
+  _allocVector (new SimRegion(SIZE))
 {
 }
 
@@ -268,7 +268,7 @@ ShimBufferManager::ShimBufferManager(char                      *buffer,
     _rewinds(0),
     _releases(0),
 #endif
-  _allocVector (new SimRegion<SIZE>)
+  _allocVector (new SimRegion(bufferSize))
 {
 }
 
