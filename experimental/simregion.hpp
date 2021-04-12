@@ -11,20 +11,21 @@
 #include <malloc/malloc.h>
 #endif
 
-static constexpr int VECTOR_INITIAL_SIZE = 0;
-
-template <int VectorInitialSize = VECTOR_INITIAL_SIZE>
 class SimRegion {
 public:
 
+  static constexpr int VECTOR_INITIAL_SIZE = 0;
+  
   enum { Alignment = alignof(std::max_align_t) }; // guaranteed by malloc
 
   static inline constexpr size_t align(size_t sz) {
     return (sz + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
   }
 
-  SimRegion() {
-    _allocated.reserve(VectorInitialSize);
+  SimRegion(unsigned int size = VECTOR_INITIAL_SIZE)
+    : _vectorInitialSize (size)
+  {
+    _allocated.reserve(_vectorInitialSize);
   }
   
   ~SimRegion() {
@@ -101,13 +102,13 @@ public:
   {
     rewind();
     _allocated.shrink_to_fit();
-    _allocated.reserve(VectorInitialSize);
+    _allocated.reserve(_vectorInitialSize);
   }
   
 private:
 
   std::vector<void *> _allocated;
-  
+  size_t _vectorInitialSize;
 };
 
 #endif // SIMREGION_HPP
