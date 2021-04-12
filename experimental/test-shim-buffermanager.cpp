@@ -23,19 +23,15 @@
 #endif
 
 #if !defined(SHUFFLE)
-#define SHUFFLE false
-//#define SHUFFLE true
+//#define SHUFFLE false
+#define SHUFFLE true
 #endif
-
-// no shim, no shuffle: 0.07MB (mimalloc), 2.543s
-// no shim, shuffle: 0.07MB (mimalloc), 2.554s
-// shim, no shuffle: 6.05MB (mimalloc), 5.379s
-// shim, shuffle (5%, 1M obj): 62.05MB (mimalloc), 24.852s
 
 int main()
 {
-  constexpr int ObjectSize = 64;
-  constexpr int Iterations = 1000;
+  constexpr int WorkingSet = 256000; // was 64000
+  constexpr int ObjectSize = 64; // was 64
+  constexpr int Iterations = WorkingSet / ObjectSize;
   // Shuffler<ObjectSize, ObjectSize, 1000000, 999, 1000, SHUFFLE> frag;
   // Shuffler<ObjectSize, ObjectSize, 1000000, 500, 1000, SHUFFLE> frag;
   Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
