@@ -26,11 +26,12 @@ template <size_t MinSize,
 	  size_t OccupancyDenominator,
 	  size_t Seed = 0>
 class Fragmenter {
+private:
+  std::mt19937 * gen { nullptr };
 public:
   Fragmenter()
   {
     std::random_device rd;
-    std::mt19937 * g;
     // If there is a non-zero seed set, use it; otherwise, use the
     // random device.
     size_t seed;
@@ -39,7 +40,7 @@ public:
     } else {
       seed = rd();
     }
-    g = new std::mt19937(seed);
+    gen = new std::mt19937(seed);
     //    printf("seed = %lu\n", seed);
     std::vector<void *> allocated;
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
@@ -48,13 +49,13 @@ public:
     
     // Allocate a bunch of objects from a range of sizes.
     for (auto i = 0UL; i < NObjects; i++) {
-      size_t size = dist(*g);
+      size_t size = dist(*gen);
       auto ptr = ::malloc(size);
       allocated[i] = ptr;
     }
     
     // Shuffle them.
-    std::shuffle(allocated.begin(), allocated.end(), *g);
+    std::shuffle(allocated.begin(), allocated.end(), *gen);
       
     // Free some fraction of them in shuffled order.
     for (auto i = 0UL; i < ((OccupancyDenominator - OccupancyNumerator) * NObjects) / OccupancyDenominator; i++) {
@@ -62,7 +63,10 @@ public:
       ::free(ptr);
     }
   }
-  
+
+  ~Fragmenter() {
+    delete gen;
+  }
 };
 
 #endif
