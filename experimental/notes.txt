@@ -1,0 +1,14 @@
+Results for test-shim-buffermanager:
+
+Linux ARM, Mac Mini:
+working set: 64000, object size: 64
+no shim, no shuffle: 0.07MB (mimalloc), 2.543s
+no shim, shuffle: 0.07MB (mimalloc), 2.554s
+shim, no shuffle: 6.05MB (mimalloc), 5.379s
+shim, shuffle (5%, 1M obj): 62.05MB (mimalloc), 24.852s
+
+
+OS X, MacBook Pro (x86):
+working set: 256000, object size: 64
+no shim, shuffle: (mimalloc) 15.89s
+shim, shuffle: (mimalloc) 159.80s
