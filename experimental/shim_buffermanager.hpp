@@ -19,6 +19,8 @@
 #include <bsls_review.h>
 #include <bsls_types.h>
 
+#include "simregion.hpp"
+
 namespace BloombergLP {
 namespace bdlma {
 
@@ -49,18 +51,8 @@ class ShimBufferManager {
     unsigned char           d_alignmentOrMask;   // a mask used during the
                                                  // alignment calculation
 
-  // the shim
-  
-  class header {
-   public:
-    header(header *prev_, header *next_) {
-      prev = prev_;
-      next = next_;
-    }
-    alignas(std::max_align_t) header *prev;
-    header *next;
-  };
-  header _allocList;  // the doubly-linked list containing all allocated objects
+  static constexpr int SIZE = 8;
+  SimRegion<SIZE> * _allocVector { nullptr };
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
   size_t _frees;        // total number of frees
@@ -235,7 +227,7 @@ class ShimBufferManager {
 inline
 ShimBufferManager::ShimBufferManager(bsls::Alignment::Strategy strategy)
 : d_buffer_p(0)
-, d_bufferSize(0)
+, d_bufferSize(UINT32_MAX)
 , d_cursor(0)
 , d_alignmentAndMask(  strategy != bsls::Alignment::BSLS_MAXIMUM
                      ? bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT - 1
@@ -251,7 +243,7 @@ ShimBufferManager::ShimBufferManager(bsls::Alignment::Strategy strategy)
     _rewinds(0),
     _releases(0),
 #endif
-    _allocList(&_allocList, &_allocList)  
+  _allocVector (new SimRegion<SIZE>)
 {
 }
 
@@ -276,7 +268,7 @@ ShimBufferManager::ShimBufferManager(char                      *buffer,
     _rewinds(0),
     _releases(0),
 #endif
-    _allocList(&_allocList, &_allocList)
+  _allocVector (new SimRegion<SIZE>)
 {
 }
 
@@ -285,19 +277,20 @@ ShimBufferManager::~ShimBufferManager()
 {
   release();
   printStats();
+  delete _allocVector;
 }
 
 // MANIPULATORS
 inline
 void *ShimBufferManager::allocate(bsls::Types::size_type size)
 {
-  return ::malloc(size);
+  return _allocVector->allocate(size);
 }
 
 inline
 void *ShimBufferManager::allocateRaw(bsls::Types::size_type size)
 {
-  return ::malloc(size);
+  return _allocVector->allocate(size);
 }
 
 template <class TYPE>
@@ -310,7 +303,7 @@ void ShimBufferManager::deleteObjectRaw(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	::free(object);
+	_allocVector->deallocate(object);
     }
 }
 
@@ -342,27 +335,14 @@ void ShimBufferManager::release()
 #if COLLECT_STATS
     _releases++;
 #endif
-    // Iterate through the allocation list, freeing objects one at a time.
-    header *p = _allocList.next;
-    while (p != &_allocList) {
-      header *q = p->next;
-#if COLLECT_STATS
-      _frees++;
-#endif
-      ::free(p);
-      p = q;
-    }
-    // Reset the list to its original (empty) state.
-    _allocList.prev = &_allocList;
-    _allocList.next = &_allocList;
+    _allocVector->release();
 }
 
 inline
 void ShimBufferManager::reset()
 {
-  release();
+  _allocVector->rewind();
   d_buffer_p = 0;
-  d_bufferSize = 0;
   d_cursor = 0;
 }
 
