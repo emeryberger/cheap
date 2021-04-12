@@ -10,5 +10,5 @@ shim, shuffle (5%, 1M obj): 62.05MB (mimalloc), 24.852s
 
 OS X, MacBook Pro (x86):
 working set: 256000, object size: 64
-no shim, shuffle: (mimalloc) 15.89s
-shim, shuffle: (mimalloc) 159.80s
+no shim, shuffle: (mimalloc) 15.89s {TurboBoost off}, 9.89s {TurboBoost on}
+shim, shuffle: (mimalloc) 159.80s {TurboBoost off}, 160.03s {TurboBoost off}
