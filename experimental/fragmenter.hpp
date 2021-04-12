@@ -3,6 +3,7 @@
 #ifndef FRAGMENTER_HPP
 #define FRAGMENTER_HPP
 
+#include <cassert>
 #include <random>
 #include <algorithm>
 #include <vector>
@@ -24,6 +25,7 @@ template <size_t MinSize,
 	  size_t NObjects,
 	  size_t OccupancyNumerator,
 	  size_t OccupancyDenominator,
+	  bool Shuffle = true,
 	  size_t Seed = 0>
 class Fragmenter {
 private:
@@ -41,25 +43,27 @@ public:
       seed = rd();
     }
     gen = new std::mt19937(seed);
-    //    printf("seed = %lu\n", seed);
-    std::vector<void *> allocated;
+    std::vector<void *> allocated (NObjects);
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
 
-    allocated.reserve(NObjects);
-    
     // Allocate a bunch of objects from a range of sizes.
     for (auto i = 0UL; i < NObjects; i++) {
       size_t size = dist(*gen);
       auto ptr = ::malloc(size);
       allocated[i] = ptr;
     }
+
+    assert(allocated.size() == NObjects);
     
-    // Shuffle them.
-    std::shuffle(allocated.begin(), allocated.end(), *gen);
-      
-    // Free some fraction of them in shuffled order.
+    if (Shuffle) {
+      // Shuffle them.
+      std::shuffle(allocated.begin(), allocated.end(), *gen);
+    }
+    
+    // Free some fraction of them (potentially in shuffled order).
     for (auto i = 0UL; i < ((OccupancyDenominator - OccupancyNumerator) * NObjects) / OccupancyDenominator; i++) {
       auto ptr = allocated[i];
+      // std::cout << "freeing " << ptr << std::endl;
       ::free(ptr);
     }
   }
