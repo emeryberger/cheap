@@ -62,7 +62,7 @@ int main()
 #if USE_BUFFER
     BloombergLP::bdlma::BufferManager mgr(buf, Iterations*ObjectSize);
 #elif USE_SHIM
-    bdlma::ShimBufferManager mgr;
+    bdlma::ShimBufferManager mgr(nullptr, Iterations);
 #endif
     for (auto i = 0; i < Iterations; i++) {
       volatile char * ch = (char *) mgr.allocate(ObjectSize);
