@@ -1,0 +1,27 @@
+name: Build Cheap
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    #old: prsam/cheap:base-clang13
+    container: prsam/cheap:base-clang-13-stdlibcxx
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: build libs
+      run: make
+    - name: make json
+      run: make -C examples/json/
+    - name: make rapidjson
+      run: make -C examples/rapidjson/
+    - name: make swaptions
+      run: make -C examples/swaptions/
+    - name: make boostjson
+      run: make -C examples/boostjson/
