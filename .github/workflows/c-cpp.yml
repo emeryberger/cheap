@@ -10,18 +10,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
-    #old: prsam/cheap:base-clang13
     container: prsam/cheap:base-clang-13-stdlibcxx
 
     steps:
     - uses: actions/checkout@v2
     - name: build libs
+      run: |
+        make
+        test -f libcheap.so
+        test -f libcheaper.so
+    - name: basic compile test
       run: make
-    - name: make json
-      run: make -C examples/json/
-    - name: make rapidjson
-      run: make -C examples/rapidjson/
-    - name: make swaptions
-      run: make -C examples/swaptions/
-    - name: make boostjson
-      run: make -C examples/boostjson/
+    - name: example.json
+      working-directory: examples/json/
+      run: |
+        make
+        ./testjson 
+        LD_LIBRARY_PATH=../.. ./testjson-cheapened
+    - name: example.rapidjson
+      working-directory: examples/rapidjson/
+      run: |
+        make
+        ./testrapidjson
+        LD_PRELOAD=../../libcheaper.so ./testrapidjson
+        python3 ../../cheaper.py --progname ./testrapidjson
+        LD_LIBRARY_PATH=../.. ./testrapidjson-cheapened
+    - name: example.swaptions
+      working-directory: examples/swaptions/
+      run: |
+        make
+        make version=pthreads cheap=1
+        ./swaptions-expensive -ns 2 -sm 1000000 -nt 1
+        LD_LIBRARY_PATH=../.. ./swaptions-cheap -ns 2 -sm 1000000 -nt 1
+    - name: example.boostjson
+      working-directory: examples/boostjson/
+      run: |
+        make
+        ./testboostjson
+        LD_LIBRARY_PATH=../.. ./testboostjson-cheapened

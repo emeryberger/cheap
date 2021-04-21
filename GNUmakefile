@@ -17,7 +17,7 @@ format: $(SOURCES)
 	black cheaper.py
 
 test:  $(SOURCES) test/regional.cpp testcheapen.cpp
-	clang++ -std=c++14 -Wl,-no_pie -O0 -fno-inline -g -fno-inline-functions test/regional.cpp -o regional
+	clang++ -std=c++14 -Wl,-no-pie -O0 -fno-inline -g -fno-inline-functions test/regional.cpp -o regional
 	clang++ -std=c++14 -O0 -DTEST -IHeap-Layers -fno-inline-functions -fno-inline -g testcheapen.cpp -o testcheapen-trace
 	clang++ -std=c++14 -flto -O3 -g -IHeap-Layers -DNDEBUG -DCHEAPEN=1 testcheapen.cpp -o testcheapen-cheapen -lpthread -L. -lcheap
 	clang++ -std=c++14 -fno-inline-functions -fno-inline -O0 -g -IHeap-Layers -DCHEAPEN=1 testcheapen.cpp -o testcheapen-cheapen-debug -lpthread -L. -lcheap
