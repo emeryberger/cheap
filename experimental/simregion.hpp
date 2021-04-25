@@ -88,7 +88,7 @@ public:
   {
   }
 
-  inline constexpr size_t size() {
+  inline size_t size() {
     return _allocated.size();
   }
   

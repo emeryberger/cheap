@@ -24,9 +24,7 @@
 #define COLLECT_STATS 0  // FIXME
 #define REPORT_STATS 0
 
-#include <bdlma_managedallocator.h>
-#include <bdlma_bufferedsequentialpool.h>
-#include <bdlma_managedallocator.h>
+// #include <bdlma_bufferedsequentialpool.h>
 
 #include <bslma_allocator.h>
 
@@ -52,8 +50,10 @@ using namespace BloombergLP;
 
  */
 
+namespace BloombergLP {
+namespace bslma {
+
 class ShimAllocator : public bslma::Allocator {
-// bdlma::ManagedAllocator {
  public:
 
   // Constructors to match BufferedSequentialAllocator constructors.
@@ -94,7 +94,7 @@ class ShimAllocator : public bslma::Allocator {
 
   ShimAllocator(bslma::Allocator * = 0)
     :
-    _allocVector (new SimRegion<SIZE>)
+    _allocVector (new SimRegion())
   {
   }
 
@@ -150,7 +150,7 @@ class ShimAllocator : public bslma::Allocator {
       return nullptr;
     }
     auto ptr = allocate(*size);
-    *size = SimRegion<SIZE>::getSize(ptr);
+    *size = SimRegion::getSize(ptr);
     return ptr;
   }
 
@@ -165,7 +165,7 @@ class ShimAllocator : public bslma::Allocator {
 		    int originalNumBytes)
   {
     // Return the max amount already available.
-    return SimRegion<SIZE>::getSize(address); // align(originalNumBytes);
+    return SimRegion::getSize(address); // align(originalNumBytes);
   }
 
   inline int expand(void * address,
@@ -183,7 +183,7 @@ class ShimAllocator : public bslma::Allocator {
 		      int newNumBytes)
   {
     // Do nothing with the object's size - just return the original size.
-    return SimRegion<SIZE>::getSize(address);
+    return SimRegion::getSize(address);
   }
   
   inline void *allocate(size_type sz) {
@@ -234,7 +234,7 @@ class ShimAllocator : public bslma::Allocator {
   void deleteObjectRaw(bsl::nullptr_t ptr) {}
 
   ShimAllocator(const ShimAllocator& that) noexcept {
-    _allocVector = new SimRegion<SIZE>;
+    _allocVector = new SimRegion();
   }
 
   ShimAllocator(ShimAllocator&& that) noexcept {
@@ -256,7 +256,7 @@ class ShimAllocator : public bslma::Allocator {
   friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat);
 
   static constexpr int SIZE = 32; // 64;
-  SimRegion<SIZE> * _allocVector { nullptr };
+  SimRegion * _allocVector { nullptr };
   
 #if COLLECT_STATS
   size_t _allocations {0};  // total number of allocations
@@ -275,6 +275,8 @@ bool operator==(const ShimAllocator& dis, const ShimAllocator& dat) {
 bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
   return dis._allocVector != dat._allocVector;
 }
-  
+
+}
+}
 
 #endif  // SHIM_ALLOCATOR_HPP
