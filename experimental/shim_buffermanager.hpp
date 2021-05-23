@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <bdlscm_version.h>
+//#include <bdlscm_version.h>
 
 #include <bsls_alignment.h>
 #include <bsls_alignmentutil.h>

@@ -486,7 +486,7 @@ void BufferedSequentialAllocator_REAL::rewind()
 #if BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
 typedef BufferedSequentialAllocator_REAL BufferedSequentialAllocator;
 #else
-typedef ShimAllocator BufferedSequentialAllocator;
+typedef bslma::ShimAllocator BufferedSequentialAllocator;
 #endif
 
 }  // close package namespace

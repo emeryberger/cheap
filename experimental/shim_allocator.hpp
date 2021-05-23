@@ -234,12 +234,16 @@ class ShimAllocator : public bslma::ManagedAllocator {
   ShimAllocator(ShimAllocator&& that) noexcept {
   }
   
+#if 1
   ShimAllocator& operator=(const ShimAllocator& that) noexcept {
     return *this;
   }
+#endif
   
   ShimAllocator& operator=(ShimAllocator&& that) noexcept {
-    release();
+    that.release();
+    that._allocVector = new SimRegion();
+    // release();
     return *this;
   }
 
@@ -278,7 +282,6 @@ inline bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
 
   #endif
 
-  #warning WTF
 }
 }
 

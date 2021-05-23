@@ -1,5 +1,7 @@
 // bdlma_buffermanager.h                                              -*-C++-*-
 
+#include "/Users/emery/cheap/experimental/bde-config.h"
+
 #ifndef BDE_USE_ORIGINAL_BUFFERMANAGER
 #define BDE_USE_ORIGINAL_BUFFERMANAGER 0
 #endif
