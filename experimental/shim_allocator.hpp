@@ -5,14 +5,6 @@
 
 #include "tprintf.h"
 
-#define USE_ORIGINAL 0
-
-#if USE_ORIGINAL
-#warning "original bufferedsequentialallocator"
-#else
-#warning "SHIM bufferedsequentialallocator"
-#endif
-
 #include <cassert>
 #include <cstddef>
 #include <vector>
@@ -27,6 +19,7 @@
 // #include <bdlma_bufferedsequentialpool.h>
 
 #include <bslma_allocator.h>
+#include <bslma_managedallocator.h>
 
 #include <bsls_alignment.h>
 #include <bsls_blockgrowth.h>
@@ -53,7 +46,8 @@ using namespace BloombergLP;
 namespace BloombergLP {
 namespace bslma {
 
-class ShimAllocator : public bslma::Allocator {
+class ShimAllocator : public bslma::ManagedAllocator {
+  // class ShimAllocator : public bslma::Allocator {
  public:
 
   // Constructors to match BufferedSequentialAllocator constructors.
@@ -252,8 +246,12 @@ class ShimAllocator : public bslma::Allocator {
  
  private:
 
-  friend bool operator==(const ShimAllocator& dis, const ShimAllocator& dat);
-  friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat);
+  inline friend bool operator==(const ShimAllocator& dis, const ShimAllocator& dat) {
+    return dis._allocVector == dat._allocVector;
+  }
+  inline friend bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
+    return dis._allocVector != dat._allocVector;
+  }
 
   static constexpr int SIZE = 32; // 64;
   SimRegion * _allocVector { nullptr };
@@ -268,14 +266,19 @@ class ShimAllocator : public bslma::Allocator {
 #endif
 };
 
-bool operator==(const ShimAllocator& dis, const ShimAllocator& dat) {
+  #if 0
+  
+inline bool operator==(const ShimAllocator& dis, const ShimAllocator& dat) {
   return dis._allocVector == dat._allocVector;
 }
   
-bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
+inline bool operator!=(const ShimAllocator& dis, const ShimAllocator& dat) {
   return dis._allocVector != dat._allocVector;
 }
 
+  #endif
+
+  #warning WTF
 }
 }
 
