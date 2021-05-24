@@ -287,7 +287,7 @@ class Allocator;
                        // class SequentialAllocator_REAL
                        // =========================
 
-class SequentialAllocator_REAL : public ManagedAllocator {
+  class SequentialAllocator_REAL : public bslma::ManagedAllocator {
     // This class implements the 'ManagedAllocator' protocol to provide a fast
     // allocator of arbitrarily-sized blocks of memory.  Both the 'release'
     // method and the destructor atomically delete all memory managed by this

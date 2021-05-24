@@ -17,7 +17,7 @@
 // #include <bdlma_bufferedsequentialpool.h>
 
 #include <bslma_allocator.h>
-#include <bdlma_managedallocator.h>
+#include <bslma_managedallocator.h>
 
 #include <bsls_alignment.h>
 #include <bsls_blockgrowth.h>
@@ -44,8 +44,8 @@ using namespace BloombergLP;
 namespace BloombergLP {
 namespace bslma {
 
-class ShimAllocator : public bdlma::ManagedAllocator {
-  // class ShimAllocator : public bslma::Allocator {
+  // class ShimAllocator : public bdlma::ManagedAllocator {
+class ShimAllocator : public bslma::ManagedAllocator {
  public:
 
   // Constructors to match BufferedSequentialAllocator constructors.
