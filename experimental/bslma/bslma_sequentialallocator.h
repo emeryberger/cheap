@@ -6,12 +6,11 @@
 
 #include "/Users/emery/cheap/experimental/bde-config.h"
 
-#ifndef BDE_USE_ORIGINAL_BUFFERMANAGER
-#define BDE_USE_ORIGINAL_BUFFERMANAGER 0
+#ifndef BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
+#error "Missing definition."
 #endif
 
-#if !BDE_USE_ORIGINAL_BUFFERMANAGER
-#warning "using replacement sequentialallocator file"
+#if !BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
 #include "/Users/emery/cheap/experimental/shim_allocator.hpp"
 #endif
 
@@ -288,7 +287,7 @@ class Allocator;
                        // class SequentialAllocator_REAL
                        // =========================
 
-class SequentialAllocator_REAL : public ManagedAllocator {
+  class SequentialAllocator_REAL : public bslma::ManagedAllocator {
     // This class implements the 'ManagedAllocator' protocol to provide a fast
     // allocator of arbitrarily-sized blocks of memory.  Both the 'release'
     // method and the destructor atomically delete all memory managed by this
@@ -641,7 +640,7 @@ int SequentialAllocator_REAL::truncate(void *address,
     return d_sequentialPool.truncate(address, originalNumBytes, newNumBytes);
 }
 
-#if BDE_USE_ORIGINAL_BUFFERMANAGER
+#if BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
 typedef SequentialAllocator_REAL SequentialAllocator;
 #else
 typedef bslma::ShimAllocator SequentialAllocator;

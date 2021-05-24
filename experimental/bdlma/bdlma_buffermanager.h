@@ -3,11 +3,10 @@
 #include "/Users/emery/cheap/experimental/bde-config.h"
 
 #ifndef BDE_USE_ORIGINAL_BUFFERMANAGER
-#define BDE_USE_ORIGINAL_BUFFERMANAGER 0
+#error "Missing definition."
 #endif
 
 #if !BDE_USE_ORIGINAL_BUFFERMANAGER
-#warning "using replacement buffermanager file"
 #include "/Users/emery/cheap/experimental/shim_buffermanager.hpp"
 #endif
 

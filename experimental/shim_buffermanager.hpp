@@ -9,8 +9,6 @@
 #include <cstdlib>
 #include <cstdio>
 
-//#include <bdlscm_version.h>
-
 #include <bsls_alignment.h>
 #include <bsls_alignmentutil.h>
 #include <bsls_assert.h>
@@ -268,7 +266,7 @@ ShimBufferManager::ShimBufferManager(char                      *buffer,
     _rewinds(0),
     _releases(0),
 #endif
-  _allocVector (new SimRegion(bufferSize))
+  _allocVector (new SimRegion((unsigned int) bufferSize))
 {
 }
 
