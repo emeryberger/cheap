@@ -203,9 +203,12 @@ BSLS_IDENT("$Id: $")
 
 #include "/Users/emery/cheap/experimental/bde-config.h"
 
+#ifndef BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
+#error "Missing definition."
+#endif
+
 #if !BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
 #include "/Users/emery/cheap/experimental/shim_allocator.hpp"
-#warning "using replacement bufferedsequentialallocator file"
 #endif
 
 namespace BloombergLP {

@@ -3,8 +3,6 @@
 #ifndef SHIM_ALLOCATOR_HPP
 #define SHIM_ALLOCATOR_HPP
 
-#include "tprintf.h"
-
 #include <cassert>
 #include <cstddef>
 #include <vector>
@@ -19,7 +17,7 @@
 // #include <bdlma_bufferedsequentialpool.h>
 
 #include <bslma_allocator.h>
-#include <bslma_managedallocator.h>
+#include <bdlma_managedallocator.h>
 
 #include <bsls_alignment.h>
 #include <bsls_blockgrowth.h>
@@ -46,7 +44,7 @@ using namespace BloombergLP;
 namespace BloombergLP {
 namespace bslma {
 
-class ShimAllocator : public bslma::ManagedAllocator {
+class ShimAllocator : public bdlma::ManagedAllocator {
   // class ShimAllocator : public bslma::Allocator {
  public:
 
@@ -59,29 +57,29 @@ class ShimAllocator : public bslma::ManagedAllocator {
   typedef std::false_type is_always_equal;
 
   ShimAllocator(char *,
-		bsls::Types::size_type size,
+		bsls::Types::size_type, //  size,
 		bslma::Allocator * basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
-  ShimAllocator(char                        *buffer,
-		bsls::Types::size_type       size,
-		bsls::BlockGrowth::Strategy  growthStrategy,
+  ShimAllocator(char                        *, // buffer,
+		bsls::Types::size_type       , // size,
+		bsls::BlockGrowth::Strategy  , // growthStrategy,
 		bslma::Allocator            *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
-  ShimAllocator(char                      *buffer,
-		bsls::Types::size_type     size,
-		bsls::Alignment::Strategy  alignmentStrategy,
+  ShimAllocator(char                      *, // buffer,
+		bsls::Types::size_type     , // size,
+		bsls::Alignment::Strategy  , // alignmentStrategy,
 		bslma::Allocator          *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
-  ShimAllocator(char                        *buffer,
-		bsls::Types::size_type       size,
-		bsls::BlockGrowth::Strategy  growthStrategy,
-		bsls::Alignment::Strategy    alignmentStrategy,
+  ShimAllocator(char                        *, // buffer,
+		bsls::Types::size_type       , // size,
+		bsls::BlockGrowth::Strategy  , // growthStrategy,
+		bsls::Alignment::Strategy    , // alignmentStrategy,
 		bslma::Allocator            *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
@@ -136,48 +134,46 @@ class ShimAllocator : public bslma::ManagedAllocator {
     // printStats();
   }
 
-#warning "including the shim"
-
   inline void *allocateAndExpand(int * size)
   {
     if (*size == 0) {
       return nullptr;
     }
     auto ptr = allocate(*size);
-    *size = SimRegion::getSize(ptr);
+    *size = (int) SimRegion::getSize(ptr);
     return ptr;
   }
 
   inline void * allocateAndExpand(int * sz,
-				  int maxNumBytes)
+				  int) //  maxNumBytes)
   {
     // Undefined behavior if align(sz) > maxNumBytes
     return allocateAndExpand(sz);
   }
 
   inline int expand(void * address,
-		    int originalNumBytes)
+		    int) //  originalNumBytes)
   {
     // Return the max amount already available.
-    return SimRegion::getSize(address); // align(originalNumBytes);
+    return (int) SimRegion::getSize(address); // align(originalNumBytes);
   }
 
   inline int expand(void * address,
 		    int originalNumBytes,
-		    int maxNumBytes)
+		    int) //  maxNumBytes)
   {
     return expand(address, originalNumBytes);
   }
 
-  virtual void reserveCapacity(int numBytes) {
+  virtual void reserveCapacity(int) { //  numBytes) {
   }
 
   inline int truncate(void * address,
-		      int originalNumBytes,
-		      int newNumBytes)
+		      int, //  originalNumBytes,
+		      int) //  newNumBytes)
   {
     // Do nothing with the object's size - just return the original size.
-    return SimRegion::getSize(address);
+    return (int) SimRegion::getSize(address);
   }
   
   inline void *allocate(size_type sz) {
@@ -197,12 +193,12 @@ class ShimAllocator : public bslma::ManagedAllocator {
     return allocate(sz);
   }
 
-  inline void free(void * ptr) {
+  inline void free(void *) { //  ptr) {
     return;
     // deallocate(ptr);
   }
   
-  inline void deallocate(void *address) {
+  inline void deallocate(void *) { // address) {
 #if COLLECT_STATS
     _deallocations++;
     _frees++;
@@ -210,32 +206,32 @@ class ShimAllocator : public bslma::ManagedAllocator {
   }
 
   template <class TYPE>
-  void deleteObject(const TYPE *object) {
+  void deleteObject(const TYPE) { //  *object) {
 #if 0
     object->~TYPE();
     deallocate(object);
 #endif
   }
-  void deleteObject(bsl::nullptr_t ptr) {}
+  void deleteObject(bsl::nullptr_t) {} //  ptr) {}
 
   template <class TYPE>
-  void deleteObjectRaw(const TYPE *object) {
+  void deleteObjectRaw(const TYPE) { //  *object) {
 #if 0
     object->~TYPE();
     deallocate(object);
 #endif
   }
-  void deleteObjectRaw(bsl::nullptr_t ptr) {}
+  void deleteObjectRaw(bsl::nullptr_t) {}
 
-  ShimAllocator(const ShimAllocator& that) noexcept {
+  ShimAllocator(const ShimAllocator&) noexcept {
     _allocVector = new SimRegion();
   }
 
-  ShimAllocator(ShimAllocator&& that) noexcept {
+  ShimAllocator(ShimAllocator&&) noexcept {
   }
   
 #if 1
-  ShimAllocator& operator=(const ShimAllocator& that) noexcept {
+  ShimAllocator& operator=(const ShimAllocator&) noexcept {
     return *this;
   }
 #endif

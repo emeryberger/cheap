@@ -6,12 +6,11 @@
 
 #include "/Users/emery/cheap/experimental/bde-config.h"
 
-#ifndef BDE_USE_ORIGINAL_BUFFERMANAGER
-#define BDE_USE_ORIGINAL_BUFFERMANAGER 0
+#ifndef BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
+#error "Missing definition."
 #endif
 
-#if !BDE_USE_ORIGINAL_BUFFERMANAGER
-#warning "using replacement sequentialallocator file"
+#if !BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
 #include "/Users/emery/cheap/experimental/shim_allocator.hpp"
 #endif
 
@@ -641,7 +640,7 @@ int SequentialAllocator_REAL::truncate(void *address,
     return d_sequentialPool.truncate(address, originalNumBytes, newNumBytes);
 }
 
-#if BDE_USE_ORIGINAL_BUFFERMANAGER
+#if BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
 typedef SequentialAllocator_REAL SequentialAllocator;
 #else
 typedef bslma::ShimAllocator SequentialAllocator;
