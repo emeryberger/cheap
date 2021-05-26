@@ -44,6 +44,7 @@ public:
     }
     gen = new std::mt19937(seed);
     std::vector<void *> allocated (NObjects);
+    std::vector<void *> allocated_copy (NObjects);
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
 
     // Allocate a bunch of objects from a range of sizes.
@@ -51,6 +52,7 @@ public:
       size_t size = dist(*gen);
       auto ptr = ::malloc(size);
       allocated[i] = ptr;
+      allocated_copy[i] = ptr;
     }
 
     assert(allocated.size() == NObjects);
@@ -58,6 +60,14 @@ public:
     if (Shuffle) {
       // Shuffle them.
       std::shuffle(allocated.begin(), allocated.end(), *gen);
+      // Prevent optimization.
+      volatile auto v = allocated.end();
+    } else {
+      // Shuffle the copy.
+      // Shuffle them.
+      std::shuffle(allocated_copy.begin(), allocated_copy.end(), *gen);
+      // Prevent optimization.
+      volatile auto v = allocated_copy.end();
     }
     
     // Free some fraction of them (potentially in shuffled order).
