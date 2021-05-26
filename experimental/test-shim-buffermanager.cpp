@@ -5,17 +5,21 @@
 #include <string.h>
 //#include <bslstl_string.h>
 //#include <bdlma_bufferedsequentialallocator.h>
+#include <bdlma_buffermanager.h>
 #include <string>
 #include <cstring>
 #include <memory>
+#include <chrono>
+#include <ratio>
+#include <ctime>
 
 #include "shim_buffermanager.hpp"
 
 #include "shuffler.hpp"
 
 #if !defined(USE_BUFFER) && !defined(USE_SHIM)
-#define USE_BUFFER 0
-#define USE_SHIM 1
+#define USE_BUFFER 1
+#define USE_SHIM 0
 #endif
 
 #if USE_BUFFER + USE_SHIM != 1
@@ -33,10 +37,19 @@ int main()
   constexpr int ObjectSize = 64; // was 64
   constexpr int Iterations = WorkingSet / ObjectSize;
   // Shuffler<ObjectSize, ObjectSize, 1000000, 999, 1000, SHUFFLE> frag;
-  // Shuffler<ObjectSize, ObjectSize, 1000000, 500, 1000, SHUFFLE> frag;
-  Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
+  //  Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
+  //  Shuffler<ObjectSize, ObjectSize, 1000000, 50, 1000, SHUFFLE> frag;
+  using namespace std::chrono;
+  high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+  volatile Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
+  
+  high_resolution_clock::time_point t2 = high_resolution_clock::now();
+  duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+  
+  // Shuffler<ObjectSize, ObjectSize, 1000000, 100, 1000, SHUFFLE> frag;
   //Shuffler<ObjectSize, ObjectSize, 1000000, 50, 1000, SHUFFLE> frag;
-  std::cout << "starting " << getpid() << std::endl;
+  //  std::cout << "starting " << getpid() << std::endl;
 
 #if USE_BUFFER
   std::cout << "  using BufferManager ";
@@ -54,7 +67,7 @@ int main()
   using namespace BloombergLP;
   char * buf = new char[Iterations * ObjectSize];
   //    for (auto it = 0; it < 10000000; it++) {
-  for (auto it = 0; it < 1000000; it++) {
+  for (auto it = 0; it < 100000; it++) {
 #if USE_BUFFER
     BloombergLP::bdlma::BufferManager mgr(buf, Iterations*ObjectSize);
 #elif USE_SHIM
@@ -68,5 +81,8 @@ int main()
     }
   }
   delete [] buf;
+  high_resolution_clock::time_point t3 = high_resolution_clock::now();
+  duration<double> time_span2 = duration_cast<duration<double>>(t3 - t1);
+  std::cout << "Time elapsed = " << time_span2.count() - time_span.count() << std::endl;
   return 0;
 }
