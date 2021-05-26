@@ -40,7 +40,7 @@ int main()
 #endif
   std::cout << std::endl;
   
-  ShimAllocator alloc;
+  BloombergLP::bslma::ShimAllocator alloc;
   auto ptrs = new void *[its];
 
 
