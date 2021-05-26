@@ -9,7 +9,7 @@ INCLUDES = -I$(BDL)/bdlma -I$(BDL)/bdlscm -I$(BSL)/bsl+bslhdrs -I$(BSL)/bsla -I$
 # LIBROOT = $(BDE)/_build/unix-darwin-arm64-20.3.0-clang-12.0.0-opt_exc_mt_64_cpp03
 LIBROOT = $(BDE)/_build
 
-LIBS = -L$(LIBROOT) -lbdl -lbsl
+LIBS = -L$(LIBROOT) -lbdl -lbsl -lbsls
 CXXFLAGS = -std=c++14 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
 
 all: test-buffer-manager
