@@ -31,7 +31,7 @@ class Shuffler {
 private:
   std::mt19937 * gen { nullptr };
 public:
-  Shuffler()
+  Shuffler(bool shuffle = true)
   {
     std::random_device rd;
     // If there is a non-zero seed set, use it; otherwise, use the
@@ -57,7 +57,7 @@ public:
 
     assert(allocated.size() == NObjects);
     
-    if (Shuffle) {
+    if (shuffle) {
       // Shuffle them.
       std::shuffle(allocated.begin(), allocated.end(), *gen);
       // Prevent optimization.
@@ -71,9 +71,10 @@ public:
     }
     
     // Free some fraction of them (potentially in shuffled order).
-    for (auto i = 0UL; i < ((OccupancyDenominator - OccupancyNumerator) * NObjects) / OccupancyDenominator; i++) {
+    auto objsToBeFreed = ((OccupancyDenominator - OccupancyNumerator) * NObjects) / OccupancyDenominator;
+    std::cout << objsToBeFreed << std::endl;
+    for (auto i = 0UL; i < objsToBeFreed; i++) {
       auto ptr = allocated[i];
-      // std::cout << "freeing " << ptr << std::endl;
       ::free(ptr);
     }
   }
