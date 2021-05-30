@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-  volatile Litterer<ObjectSize, ObjectSize, 1000000, 100, 1000> frag (result.count("shuffle"));
+  volatile Litterer<ObjectSize, ObjectSize, 10000000, 100, 1000> frag (result.count("shuffle"));
   
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
@@ -66,6 +66,7 @@ int main(int argc, char * argv[])
   if (result.count("shuffle")) {
     std::cout << "(shuffled) ";
   }
+  std::cout << "working set = " << WorkingSet << " bytes";
   
   std::cout << std::endl;
 
@@ -80,12 +81,13 @@ int main(int argc, char * argv[])
     
     for (auto i = 0; i < Iterations; i++) {
       volatile char * ch;
+      volatile int value = 13;
       if (result.count("buffer")) {
 	ch = (char *) mgr_buffer.allocate(ObjectSize);
       } else {
 	ch = (char *) mgr_shim.allocate(ObjectSize);
       }
-      memset((void *) ch, 13, ObjectSize);
+      memset((void *) ch, value, ObjectSize);
       ptrs[i] = (void *) ch;
     }
     volatile char ch;

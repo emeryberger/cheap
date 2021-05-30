@@ -25,7 +25,6 @@ template <size_t MinSize,
 	  size_t NObjects,
 	  size_t OccupancyNumerator,
 	  size_t OccupancyDenominator,
-	  bool Shuffle = true,
 	  size_t Seed = 0>
 class Litterer {
 private:
