@@ -72,7 +72,6 @@ public:
     
     // Free some fraction of them (potentially in shuffled order).
     auto objsToBeFreed = ((OccupancyDenominator - OccupancyNumerator) * NObjects) / OccupancyDenominator;
-    std::cout << objsToBeFreed << std::endl;
     for (auto i = 0UL; i < objsToBeFreed; i++) {
       auto ptr = allocated[i];
       ::free(ptr);
