@@ -14,21 +14,27 @@
 #include <ctime>
 
 #include "shim_buffermanager.hpp"
-#include "shuffler.hpp"
+#include "litterer.hpp"
 
 #include "cxxopts.hpp"
 
 int main(int argc, char * argv[])
 {
-  cxxopts::Options options(argv[0], " - command line options");
+  cxxopts::Options options(argv[0], "");
   options.add_options()
-    ("shuffle","Shuffle")
-    ("buffer","Buffer")
-    ("shim","Shim")
-    ("working-set","Working set", cxxopts::value<int>())
-    ("locality-iterations","Locality iterations", cxxopts::value<int>());
+    ("help","Print command-line options")
+    ("shuffle","Shuffle ('litter') randomly before starting")
+    ("buffer","Use the actual buffer implementation")
+    ("shim","Use a shim buffer implementation")
+    ("working-set","Size in number of bytes of working set", cxxopts::value<int>())
+    ("locality-iterations","Locality iterations (non-allocating)", cxxopts::value<int>());
 
   auto result = options.parse(argc, argv);
+
+  if (result.count("help")) {
+    std::cout << options.help({""}) << std::endl;
+    return 0;
+  }
   
   int WorkingSet = 256000; // was 64000
 
@@ -41,7 +47,7 @@ int main(int argc, char * argv[])
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-  volatile Shuffler<ObjectSize/2, ObjectSize, 1000000, 100, 1000> frag (result.count("shuffle"));
+  volatile Litterer<ObjectSize, ObjectSize, 1000000, 100, 1000> frag (result.count("shuffle"));
   
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);

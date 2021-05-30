@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef SHUFFLER_HPP
-#define SHUFFLER_HPP
+#ifndef LITTERER_HPP
+#define LITTERER_HPP
 
 #include <cassert>
 #include <random>
@@ -11,7 +11,7 @@
 #include <utility>
 
 /***
- * Shuffler
+ * Litterer
  *
  * Shuffles the heap by allocating memory, freeing it randomly,
  * and leaving some fraction allocated.
@@ -27,11 +27,11 @@ template <size_t MinSize,
 	  size_t OccupancyDenominator,
 	  bool Shuffle = true,
 	  size_t Seed = 0>
-class Shuffler {
+class Litterer {
 private:
   std::mt19937 * gen { nullptr };
 public:
-  Shuffler(bool shuffle = true)
+  Litterer(bool shuffle = true)
   {
     std::random_device rd;
     // If there is a non-zero seed set, use it; otherwise, use the
@@ -78,7 +78,7 @@ public:
     }
   }
 
-  ~Shuffler() {
+  ~Litterer() {
     delete gen;
   }
 };
