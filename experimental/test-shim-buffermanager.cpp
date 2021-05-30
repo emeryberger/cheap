@@ -76,13 +76,14 @@ int main(int argc, char * argv[])
   //    for (auto it = 0; it < 10000000; it++) {
   BloombergLP::bdlma::BufferManager mgr_buffer(buf, Iterations*ObjectSize);
   bdlma::ShimBufferManager mgr_shim(nullptr, Iterations);
+  auto which_buf = result.count("buffer");
   
   for (auto it = 0; it < 1000; it++) {
     
     for (auto i = 0; i < Iterations; i++) {
       volatile char * ch;
       volatile int value = 13;
-      if (result.count("buffer")) {
+      if (which_buf) {
 	ch = (char *) mgr_buffer.allocate(ObjectSize);
       } else {
 	ch = (char *) mgr_shim.allocate(ObjectSize);
