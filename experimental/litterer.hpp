@@ -20,17 +20,17 @@
  *
  ***/
 
-template <size_t MinSize,
-	  size_t MaxSize,
-	  size_t NObjects,
-	  size_t OccupancyNumerator,
-	  size_t OccupancyDenominator,
-	  size_t Seed = 0>
 class Litterer {
 private:
   std::mt19937 * gen { nullptr };
 public:
-  Litterer(bool shuffle = true)
+  Litterer(size_t MinSize,
+	   size_t MaxSize,
+	   size_t NObjects,
+	   size_t OccupancyNumerator,
+	   size_t OccupancyDenominator,
+	   bool shuffle = true,
+	   size_t Seed = 0)
   {
     std::random_device rd;
     // If there is a non-zero seed set, use it; otherwise, use the
