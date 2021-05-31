@@ -26,7 +26,9 @@ int main(int argc, char * argv[])
     ("shuffle","Shuffle ('litter') randomly before starting")
     ("buffer","Use the actual buffer implementation")
     ("shim","Use a shim buffer implementation")
-    ("working-set","Size in number of bytes of working set", cxxopts::value<int>())
+    ("object-size","Size of objects to allocate", cxxopts::value<int>())
+    ("working-set","Size of working set (in bytes)", cxxopts::value<int>())
+    ("loops","Number of loops", cxxopts::value<int>())
     ("locality-iterations","Locality iterations (non-allocating)", cxxopts::value<int>());
 
   auto result = options.parse(argc, argv);
@@ -36,18 +38,26 @@ int main(int argc, char * argv[])
     return 0;
   }
   
-  int WorkingSet = 256000; // was 64000
+  int ObjectSize = 64; // was 64
+  if (result.count("object-size")) {
+    ObjectSize = result["object-size"].as<int>();
+  }
 
+  int WorkingSet = 256000; // was 64000
   if (result.count("working-set")) {
     WorkingSet = result["working-set"].as<int>();
   }
-  
-  constexpr int ObjectSize = 64; // was 64
   int Iterations = WorkingSet / ObjectSize;
+  
+  int Loops = 1000;
+  if (result.count("loops")) {
+    Loops = result["loops"].as<int>();
+  }
+  
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-  volatile Litterer<ObjectSize, ObjectSize, 10000000, 100, 1000> frag (result.count("shuffle"));
+  volatile Litterer frag (ObjectSize, ObjectSize, 10000000, 1, 10, result.count("shuffle"));
   
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
@@ -62,24 +72,24 @@ int main(int argc, char * argv[])
   if (result.count("locality-iterations")) {
     localityIterations = result["locality-iterations"].as<int>();
   }
-  
+
   if (result.count("shuffle")) {
     std::cout << "(shuffled) ";
   }
-  std::cout << "working set = " << WorkingSet << " bytes";
+  std::cout << "working set = " << WorkingSet << " bytes ";
   
   std::cout << std::endl;
 
   using namespace BloombergLP;
-  char * buf = new char[Iterations * ObjectSize];
-  void ** ptrs = new void * [Iterations];
+  auto buf = new char[Iterations * ObjectSize];
+  auto ptrs = new volatile void * [Iterations];
   //    for (auto it = 0; it < 10000000; it++) {
   BloombergLP::bdlma::BufferManager mgr_buffer(buf, Iterations*ObjectSize);
   bdlma::ShimBufferManager mgr_shim(nullptr, Iterations);
   
-  for (auto it = 0; it < 1000; it++) {
+  for (volatile auto it = 0; it < Loops; it++) {
     
-    for (auto i = 0; i < Iterations; i++) {
+    for (volatile auto i = 0; i < Iterations; i++) {
       volatile char * ch;
       volatile int value = 13;
       if (result.count("buffer")) {
@@ -91,11 +101,14 @@ int main(int argc, char * argv[])
       ptrs[i] = (void *) ch;
     }
     volatile char ch;
-    for (auto it = 0; it < localityIterations; it++) {
-      for (auto i = 0; i < Iterations; i++) {
+    for (volatile auto it = 0; it < localityIterations; it++) {
+      for (volatile auto i = 0; i < Iterations; i++) {
 	volatile char bufx[ObjectSize];
-	memcpy((void *) bufx, (void *) ptrs[i], ObjectSize);
-	ch = buf[ObjectSize-1];
+	for (auto j = 0; j < ObjectSize; j++) {
+	  bufx[j] = * ((char *) ptrs[j]);
+	}
+	//	memcpy((void *) bufx, (void *) ptrs[i], ObjectSize);
+	ch += buf[ObjectSize-1];
       }
     }
 
