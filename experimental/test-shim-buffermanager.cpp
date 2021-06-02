@@ -27,8 +27,10 @@ int main(int argc, char * argv[])
     ("buffer","Use the actual buffer implementation")
     ("shim","Use a shim buffer implementation")
     ("object-size","Size of objects to allocate", cxxopts::value<int>())
+    ("bytes-to-read", "Bytes to read of each object (in locality iterations).", cxxopts::value<int>())
     ("working-set","Size of working set (in bytes)", cxxopts::value<int>())
     ("loops","Number of loops", cxxopts::value<int>())
+    ("litter-occupancy", "Occupancy after littering (between 0 and 1).", cxxopts::value<float>())
     ("locality-iterations","Locality iterations (non-allocating)", cxxopts::value<int>());
 
   auto result = options.parse(argc, argv);
@@ -53,14 +55,25 @@ int main(int argc, char * argv[])
   if (result.count("loops")) {
     Loops = result["loops"].as<int>();
   }
+
+  float litterOccupancy = 0.1;
+  if (result.count("litter-occupancy")) {
+    litterOccupancy = result["litter-occupancy"].as<float>();
+  }
   
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-  volatile Litterer frag (ObjectSize, ObjectSize, 10000000, 1, 10, result.count("shuffle"));
-  
+  // volatile Litterer frag (ObjectSize, ObjectSize, 10000000, 1, 10, result.count("shuffle"));
+  volatile Litterer frag (ObjectSize, ObjectSize, WorkingSet / ObjectSize, (int) (litterOccupancy * 100), 100, result.count("shuffle"));
+ 
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
+  int BytesToRead = ObjectSize;
+  if (result.count("bytes-to-read")) {
+    BytesToRead = result["bytes-to-read"].as<int>();
+  }
   
   if (result.count("buffer")) {
     std::cout << "using BufferManager ";
@@ -105,11 +118,8 @@ int main(int argc, char * argv[])
     for (volatile auto it = 0; it < localityIterations; it++) {
       for (volatile auto i = 0; i < Iterations; i++) {
 	volatile char bufx[ObjectSize];
-	for (auto j = 0; j < ObjectSize; j++) {
-	  bufx[j] = * ((char *) ptrs[j]);
-	}
-	//	memcpy((void *) bufx, (void *) ptrs[i], ObjectSize);
-	ch += buf[ObjectSize-1];
+	memcpy((void *) bufx, (void *) ptrs[i], BytesToRead);
+	ch += bufx[ObjectSize-1];
       }
     }
 
