@@ -32,6 +32,11 @@ namespace Backtrace {
     }
 
     std::vector<StackFrame> getBacktrace(int skip) {
+        // If we have not initialized the utility yet, we return an empty stack trace.
+        if (state == nullptr) {
+            return std::vector<StackFrame>();
+        }
+
         const auto onError = [](void*, const char* msg, int errnum) {
             std::cerr << "Error #" << errnum << " while getting backtrace. Message: " << msg << std::endl;
         };
