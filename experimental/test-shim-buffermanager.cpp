@@ -24,6 +24,7 @@ int main(int argc, char * argv[])
   options.add_options()
     ("help","Print command-line options")
     ("shuffle","Shuffle ('litter') randomly before starting")
+    ("seed","Use this seed for shuffling", cxxopts::value<size_t>())
     ("buffer","Use the actual buffer implementation")
     ("shim","Use a shim buffer implementation")
     ("object-size","Size of objects to allocate", cxxopts::value<int>())
@@ -64,8 +65,14 @@ int main(int argc, char * argv[])
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
+  size_t seed = 0;
+  if (result.count("shuffle") && result.count("seed")) {
+    seed = result["seed"].as<size_t>();
+  }
+  
   // volatile Litterer frag (ObjectSize, ObjectSize, 10000000, 1, 10, result.count("shuffle"));
-  volatile Litterer frag (ObjectSize, ObjectSize, WorkingSet / ObjectSize, (int) (litterOccupancy * 100), 100, result.count("shuffle"));
+  volatile Litterer frag (ObjectSize, ObjectSize, WorkingSet / ObjectSize, (int) (litterOccupancy * 100), 100, result.count("shuffle"), seed);
+  auto storedSeed = ((Litterer *) &frag)->getSeed();
  
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
@@ -87,19 +94,22 @@ int main(int argc, char * argv[])
   }
 
   if (result.count("shuffle")) {
-    std::cout << "(shuffled) ";
+    std::cout << "(shuffled: seed = " << storedSeed << ") ";
   }
   std::cout << "working set = " << WorkingSet << " bytes ";
   
   std::cout << std::endl;
 
   using namespace BloombergLP;
-  auto buf = new char[Iterations * ObjectSize];
+  char * buf = new char[Iterations * ObjectSize];
   auto ptrs = new volatile void * [Iterations];
   //    for (auto it = 0; it < 10000000; it++) {
   BloombergLP::bdlma::BufferManager mgr_buffer(buf, Iterations*ObjectSize);
   bdlma::ShimBufferManager mgr_shim(nullptr, Iterations);
   auto which_buf = result.count("buffer");
+  if (which_buf) {
+    std::cout << "buffer starts at " << (void *) buf << std::endl;
+  }
   
   for (volatile auto it = 0; it < Loops; it++) {
     
@@ -110,6 +120,9 @@ int main(int argc, char * argv[])
 	ch = (char *) mgr_buffer.allocate(ObjectSize);
       } else {
 	ch = (char *) mgr_shim.allocate(ObjectSize);
+	if (i <= 1) {
+	  //	  std::cout << "object " << i << " = " << (void *) ch << std::endl;
+	}
       }
       memset((void *) ch, value, ObjectSize);
       ptrs[i] = (void *) ch;
