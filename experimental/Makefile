@@ -1,15 +1,13 @@
+# You will need to define this as appropriate.
+BDE_BUILD_TARGET = unix-darwin-arm64-20.5.0-clang-12.0.5-opt_exc_mt_64_cpp17
+
 BDE = bde
 BDL = $(BDE)/groups/bdl
 BSL = $(BDE)/groups/bsl
 
 INCLUDES = -I$(BDL)/bdlma -I$(BDL)/bdlscm -I$(BSL)/bsl+bslhdrs -I$(BSL)/bsla -I$(BSL)/bsls -I$(BSL)/bslmf -I$(BSL)/bslscm -I$(BSL)/bslma -I$(BSL)/bslstl -I$(BSL)/bslh -I$(BSL)/bslalg
 
-# You will need to change this once BDE is built. Would be nice if this was easy to add automatically.
-
-# LIBROOT = $(BDE)/_build/unix-darwin-x86_64-19.6.0-gcc-default-9-opt_exc_mt_64_cpp14
-# LIBROOT = $(BDE)/_build/unix-linux-aarch64-5.10.0-clang-11.0.1-2Target:-opt_exc_mt_64_cpp03/
-# LIBROOT = $(BDE)/_build/unix-darwin-arm64-20.3.0-clang-12.0.0-opt_exc_mt_64_cpp03
-LIBROOT = $(BDE)/_build/unix-darwin-arm64-20.5.0-clang-12.0.5-opt_exc_mt_64_cpp17
+LIBROOT = $(BDE)/_build/$(BDE_BUILD_TARGET)
 
 LIBS = -L$(LIBROOT) -lbdl -lbsl -lbsls
 CXXFLAGS = -std=c++14 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
