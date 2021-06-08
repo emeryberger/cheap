@@ -23,6 +23,7 @@
 class Litterer {
 private:
   std::mt19937 * gen { nullptr };
+  size_t _seed {0};
 public:
   Litterer(size_t MinSize,
 	   size_t MaxSize,
@@ -35,13 +36,12 @@ public:
     std::random_device rd;
     // If there is a non-zero seed set, use it; otherwise, use the
     // random device.
-    size_t seed;
     if (Seed) {
-      seed = Seed;
+      _seed = Seed;
     } else {
-      seed = rd();
+      _seed = rd();
     }
-    gen = new std::mt19937(seed);
+    gen = new std::mt19937(_seed);
     std::vector<void *> allocated (NObjects);
     std::vector<void *> allocated_copy (NObjects);
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
@@ -79,6 +79,10 @@ public:
 
   ~Litterer() {
     delete gen;
+  }
+
+  size_t getSeed() const {
+    return _seed;
   }
 };
 
