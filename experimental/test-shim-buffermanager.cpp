@@ -55,7 +55,7 @@ int main(int argc, char * argv[])
     Loops = result["loops"].as<int>();
   }
 
-  float litterOccupancy = 0.2;
+  float litterOccupancy = 0.3;
   if (result.count("litter-occupancy")) {
     litterOccupancy = result["litter-occupancy"].as<float>();
   }
