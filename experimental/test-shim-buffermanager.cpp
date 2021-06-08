@@ -3,8 +3,6 @@
 #include <iostream>
 #include <random>
 #include <string.h>
-//#include <bslstl_string.h>
-//#include <bdlma_bufferedsequentialallocator.h>
 #include <bdlma_buffermanager.h>
 #include <string>
 #include <cstring>
@@ -41,23 +39,23 @@ int main(int argc, char * argv[])
     return 0;
   }
   
-  int ObjectSize = 64; // was 64
+  int ObjectSize = 256; // was 64
   if (result.count("object-size")) {
     ObjectSize = result["object-size"].as<int>();
   }
 
-  int WorkingSet = 256000; // was 64000
+  int WorkingSet = 10000000; // was 64000
   if (result.count("working-set")) {
     WorkingSet = result["working-set"].as<int>();
   }
   int Iterations = WorkingSet / ObjectSize;
   
-  int Loops = 1000;
+  int Loops = 10;
   if (result.count("loops")) {
     Loops = result["loops"].as<int>();
   }
 
-  float litterOccupancy = 0.1;
+  float litterOccupancy = 0.2;
   if (result.count("litter-occupancy")) {
     litterOccupancy = result["litter-occupancy"].as<float>();
   }
@@ -88,7 +86,7 @@ int main(int argc, char * argv[])
     std::cout << "using ShimBufferManager ";
   }
 
-  int localityIterations = 1;
+  int localityIterations = 1000;
   if (result.count("locality-iterations")) {
     localityIterations = result["locality-iterations"].as<int>();
   }
@@ -96,9 +94,13 @@ int main(int argc, char * argv[])
   if (result.count("shuffle")) {
     std::cout << "(shuffled: seed = " << storedSeed << ") ";
   }
-  std::cout << "working set = " << WorkingSet << " bytes ";
-  
   std::cout << std::endl;
+  std::cout << "working set = " << WorkingSet << " bytes " << std::endl;
+  std::cout << "object size = " << ObjectSize << std::endl;
+  std::cout << "bytes to read = " << BytesToRead << std::endl;
+  std::cout << "litter occupancy = " << litterOccupancy << std::endl;
+  std::cout << "loops = " << Loops <<  std::endl;
+  std::cout << "locality iterations = " << localityIterations <<  std::endl;
 
   using namespace BloombergLP;
   char * buf = new char[Iterations * ObjectSize];
