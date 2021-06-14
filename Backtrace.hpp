@@ -58,7 +58,8 @@ namespace Backtrace {
                 char* demangled_function = abi::__cxa_demangle(function, nullptr, nullptr, &status);
                 if (status == 0) {
                     frame.function = std::string(demangled_function);
-                    free(demangled_function);
+                    static decltype(::free)* free = (decltype(::free)*) dlsym(RTLD_DEFAULT, "free");
+                    (*free)(demangled_function);
                 } else {
                     frame.function = std::string(function);
                 }
