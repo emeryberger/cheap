@@ -2,6 +2,7 @@
 
 #include <execinfo.h>
 #include <iostream>
+#include <random>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +56,18 @@ CustomHeapType& getTheCustomHeap() {
 
 static std::atomic<long> samples{0};
 static std::atomic<int> busy{0};
+
+// Rate at which allocations are sampled. Since we are using a geometric distribution, 1 / sampling_rate will equal the
+// average amount of bytes between each allocation.
+// If set to 1, every allocation will be sampled.
+static double sampling_rate = 1.0 / 64;
+
+size_t getNextSampleCount() {
+  // TODO We should maybe pass a seed to the generator below. Maybe a combination of time and thread id?
+  static thread_local std::default_random_engine generator;
+  static thread_local std::geometric_distribution<size_t> distribution(sampling_rate);
+  return distribution(generator);
+}
 
 #define USE_LOCKS 0
 
@@ -127,6 +140,10 @@ static void printProlog(char action) {
 }
 
 extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
+  // The number of bytes that need to be processed until the next sample.
+  // This count is per-thread.
+  static thread_local long long int sampling_count = 0;
+
   // Prevent loop due to internal call by backtrace_symbols
   // and omit any records once we have "ended" to prevent
   // corrupting the JSON output.
@@ -139,14 +156,19 @@ extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
   size_t real_sz = getTheCustomHeap().getSize(ptr);
   busy--;
 
-  auto tid = gettid();
-  lockme();
-  printProlog('M');
-  printStack();
-  tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
-  unlockme();
+  sampling_count -= real_sz;
 
-  ++samples;
+  if (sampling_count <= 0) {
+    auto tid = gettid();
+    lockme();
+    printProlog('M');
+    printStack();
+    tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
+    unlockme();
+
+    sampling_count = getNextSampleCount();
+    ++samples;
+  }
 
   return ptr;
 }
@@ -170,6 +192,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void* ptr) {
   printStack();
   tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
+  ++samples;
 }
 
 extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void* ptr) {
@@ -183,6 +206,7 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void* ptr) {
   printStack();
   tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
+  ++samples;
 
   return real_sz;
 }
@@ -203,6 +227,7 @@ extern "C" ATTRIBUTE_EXPORT void* xxmemalign(size_t alignment, size_t sz) {
   printStack();
   tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
+  ++samples;
 
   return ptr;
 }
