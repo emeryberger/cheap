@@ -29,6 +29,7 @@ int main(int argc, char * argv[])
     ("bytes-to-read", "Bytes to read of each object (in locality iterations).", cxxopts::value<int>())
     ("working-set","Size of working set (in bytes)", cxxopts::value<int>())
     ("loops","Number of loops", cxxopts::value<int>())
+    ("litter-objects","Number of objects to litter", cxxopts::value<int>())
     ("litter-occupancy", "Occupancy after littering (between 0 and 1).", cxxopts::value<float>())
     ("locality-iterations","Locality iterations (non-allocating)", cxxopts::value<int>());
 
@@ -59,6 +60,11 @@ int main(int argc, char * argv[])
   if (result.count("litter-occupancy")) {
     litterOccupancy = result["litter-occupancy"].as<float>();
   }
+
+  int litterObjects = WorkingSet;
+  if (result.count("litter-objects")) {
+    litterObjects = result["litter-objects"].as<int>();
+  }
   
   using namespace std::chrono;
   high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -69,12 +75,9 @@ int main(int argc, char * argv[])
   }
   
   // volatile Litterer frag (ObjectSize, ObjectSize, 10000000, 1, 10, result.count("shuffle"));
-  volatile Litterer frag (ObjectSize, ObjectSize, WorkingSet / ObjectSize, (int) (litterOccupancy * 100), 100, result.count("shuffle"), seed);
+  volatile Litterer frag (ObjectSize, ObjectSize, litterObjects, (int) (litterOccupancy * 100), 100, result.count("shuffle"), seed);
   auto storedSeed = ((Litterer *) &frag)->getSeed();
  
-  high_resolution_clock::time_point t2 = high_resolution_clock::now();
-  duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
-
   int BytesToRead = ObjectSize;
   if (result.count("bytes-to-read")) {
     BytesToRead = result["bytes-to-read"].as<int>();
@@ -105,14 +108,18 @@ int main(int argc, char * argv[])
   using namespace BloombergLP;
   char * buf = new char[Iterations * ObjectSize];
   auto ptrs = new volatile void * [Iterations];
-  //    for (auto it = 0; it < 10000000; it++) {
   BloombergLP::bdlma::BufferManager mgr_buffer(buf, Iterations*ObjectSize);
   bdlma::ShimBufferManager mgr_shim(nullptr, Iterations);
   auto which_buf = result.count("buffer");
   if (which_buf) {
     std::cout << "buffer starts at " << (void *) buf << std::endl;
   }
+
+  // Start the actual benchmark.
   
+  high_resolution_clock::time_point t2 = high_resolution_clock::now();
+  duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+
   for (volatile auto it = 0; it < Loops; it++) {
     
     for (volatile auto i = 0; i < Iterations; i++) {
