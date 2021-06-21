@@ -51,12 +51,14 @@ class ShimBufferManager {
 
   static constexpr int SIZE = 8;
   SimRegion * _allocVector { nullptr };
+#if COLLECT_STATS
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
   size_t _frees;        // total number of frees
   size_t _deallocations;
   size_t _releases;
   size_t _rewinds;
+#endif
   
   public:
     // CREATORS
