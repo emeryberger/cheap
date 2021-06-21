@@ -5,17 +5,20 @@ BDE = bde
 BDL = $(BDE)/groups/bdl
 BSL = $(BDE)/groups/bsl
 
-INCLUDES = -I$(BDL)/bdlma -I$(BDL)/bdlscm -I$(BSL)/bsl+bslhdrs -I$(BSL)/bsla -I$(BSL)/bsls -I$(BSL)/bslmf -I$(BSL)/bslscm -I$(BSL)/bslma -I$(BSL)/bslstl -I$(BSL)/bslh -I$(BSL)/bslalg
+INCLUDES = -I$(BDL)/bdlma -I$(BDL)/bdlscm -I$(BSL)/bsl+bslhdrs -I$(BSL)/bsla -I$(BSL)/bsls -I$(BSL)/bslmf -I$(BSL)/bslscm -I$(BSL)/bslma -I$(BSL)/bslstl -I$(BSL)/bslh -I$(BSL)/bslalg -I$(BSL)/bsltf
 
 LIBROOT = $(BDE)/_build/$(BDE_BUILD_TARGET)
 
 LIBS = -L$(LIBROOT) -lbdl -lbsl -lbsls
-CXXFLAGS = -std=c++14 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
+CXXFLAGS = -std=c++17 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
 
-all: test-buffer-manager
+all: test-shim-simplepool test-buffer-manager 
 
 test-buffer-manager: bde test-shim-buffermanager.cpp Makefile shim_buffermanager.hpp simregion.hpp
 	clang++ $(CXXFLAGS) test-shim-buffermanager.cpp -o test-shim-buffermanager $(LIBS)
+
+test-shim-simplepool: bde test-shim-simplepool.cpp Makefile shim_simplepool.hpp simregion.hpp
+	clang++ $(CXXFLAGS) test-shim-simplepool.cpp -o test-shim-simplepool $(LIBS)
 
 other:
 	clang++ -DUSE_MALLOC=1 $(CXXFLAGS) test-shim-allocator.cpp -o test-malloc-allocator-shuffled $(LIBS)
