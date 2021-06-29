@@ -5,11 +5,18 @@
 
 #include <algorithm> // std::sort
 #include <cassert>
+#ifndef __APPLE__
 #include <malloc.h> // malloc_usable_size
+#else
+#include <malloc/malloc.h>
+#define malloc_usable_size(x) malloc_size(x)
+#endif
 #include <random>
 #include <set>
 
+#ifndef __APPLE__
 long abs(long l) { return (l < 0L) ? -l : l; }
+#endif
 
 /***
  * The intuition behind this first version is to keep allocating until we reach PageSize bytes, forming a group of at
@@ -20,7 +27,7 @@ public:
   PageLittererV1(int MinSize, int MaxSize, int NPages, size_t Seed, long PageSize = sysconf(_SC_PAGESIZE)) {
     std::vector<std::vector<void*>> allocated(NPages);
     std::default_random_engine gen(Seed);
-    std::uniform_int_distribution dist(MinSize, MaxSize);
+    std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
     int pagesFilled = 0;
     long currentPageFill = 0;
@@ -55,7 +62,7 @@ public:
   PageLittererV2(int MinSize, int MaxSize, int NPages, size_t Seed, long PageSize = sysconf(_SC_PAGESIZE)) {
     std::vector<void*> allocated;
     std::default_random_engine gen(Seed);
-    std::uniform_int_distribution dist(MinSize, MaxSize);
+    std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
     int AverageObjectSize = (MinSize + MaxSize) / 2;
     int NAllocations = guess(AverageObjectSize, 0, 0, NPages, PageSize);
