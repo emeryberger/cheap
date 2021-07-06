@@ -11,6 +11,8 @@
 #include <malloc/malloc.h>
 #endif
 
+#include <cstddef>
+
 class SimRegion {
 public:
 
