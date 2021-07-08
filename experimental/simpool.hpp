@@ -8,6 +8,11 @@
 class SimPool {
 public:
 
+  ~SimPool()
+  {
+    release();
+  }
+  
   inline void * malloc(size_t sz) {
     // Get an object of the requested size plus the header.
     auto * b = reinterpret_cast<HL::DLList::Entry *>(::malloc(sz + sizeof(HL::DLList::Entry)));
@@ -24,6 +29,15 @@ public:
     _list.remove(b);
     // Free the object.
     ::free(b);
+  }
+
+  void release() {
+    // Iterate through the list, freeing each item.
+    auto * e = _list.get();
+    while (e) {
+      ::free(e);
+      e = _list.get();
+    }
   }
   
 private:
