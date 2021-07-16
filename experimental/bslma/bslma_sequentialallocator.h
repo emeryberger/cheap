@@ -1,18 +1,6 @@
 // bslma_sequentialallocator.h                                        -*-C++-*-
-
-
 #ifndef INCLUDED_BSLMA_SEQUENTIALALLOCATOR
 #define INCLUDED_BSLMA_SEQUENTIALALLOCATOR
-
-#include "/Users/emery/cheap/experimental/bde-config.h"
-
-#ifndef BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
-#error "Missing definition."
-#endif
-
-#if !BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
-#include "/Users/emery/cheap/experimental/shim_allocator.hpp"
-#endif
 
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
@@ -22,12 +10,12 @@ BSLS_IDENT("$Id: $")
 //@INTERNAL_DEPRECATED: Use 'bdlma_bufferedsequentialallocator' instead.
 //
 //@CLASSES:
-//  bslma::SequentialAllocator_REAL: fast variable-size memory allocator
+//  bslma::SequentialAllocator: fast variable-size memory allocator
 //
 //@SEE_ALSO: bdlma_sequentialallocator, bdlma_bufferedsequentialallocator
 //
 //@DESCRIPTION: This component provides an allocator,
-// 'bslma::SequentialAllocator_REAL', that implements the 'bslma::ManagedAllocator'
+// 'bslma::SequentialAllocator', that implements the 'bslma::ManagedAllocator'
 // protocol and allocates memory blocks of any requested size, from an internal
 // buffer (pool) or a user-supplied buffer.  If an allocation request exceeds
 // the remaining free memory space in the pool, the pool either 1) replenishes
@@ -39,7 +27,7 @@ BSLS_IDENT("$Id: $")
 // memory cannot be separately deallocated.
 //..
 //   ,--------------------------.
-//  ( bslma::SequentialAllocator_REAL )
+//  ( bslma::SequentialAllocator )
 //   `--------------------------'
 //                |         ctor/dtor
 //                |         allocateAndExpand
@@ -86,7 +74,7 @@ BSLS_IDENT("$Id: $")
 //
 ///Optional 'buffer' Parameter
 ///---------------------------
-// A buffer can be supplied to a 'bslma::SequentialAllocator_REAL' object at
+// A buffer can be supplied to a 'bslma::SequentialAllocator' object at
 // construction in which case the allocator will try to satisfy allocation
 // requests using this buffer before switching to a dynamically-allocated
 // internal pool.  Once the allocator is using an internal pool, it will not
@@ -106,7 +94,7 @@ BSLS_IDENT("$Id: $")
 //
 ///Internal Buffer Growth
 ///----------------------
-// A 'bslma::SequentialAllocator_REAL' replenishes its internal buffer if the
+// A 'bslma::SequentialAllocator' replenishes its internal buffer if the
 // current buffer cannot satisfy an allocation request.  It does so by one of
 // two growth strategies:
 //
@@ -284,10 +272,10 @@ namespace bslma {
 class Allocator;
 
                        // =========================
-                       // class SequentialAllocator_REAL
+                       // class SequentialAllocator
                        // =========================
 
-  class SequentialAllocator_REAL : public bslma::ManagedAllocator {
+class SequentialAllocator : public ManagedAllocator {
     // This class implements the 'ManagedAllocator' protocol to provide a fast
     // allocator of arbitrarily-sized blocks of memory.  Both the 'release'
     // method and the destructor atomically delete all memory managed by this
@@ -298,18 +286,18 @@ class Allocator;
     SequentialPool d_sequentialPool;  // sequential pool mechanism
 
     // NOT IMPLEMENTED
-    SequentialAllocator_REAL(const SequentialAllocator_REAL&);
-    SequentialAllocator_REAL& operator=(const SequentialAllocator_REAL&);
+    SequentialAllocator(const SequentialAllocator&);
+    SequentialAllocator& operator=(const SequentialAllocator&);
 
   public:
     // CREATORS
-    explicit SequentialAllocator_REAL(Allocator *basicAllocator = 0);
-    explicit SequentialAllocator_REAL(
+    explicit SequentialAllocator(Allocator *basicAllocator = 0);
+    explicit SequentialAllocator(
                        BufferAllocator::AlignmentStrategy  strategy,
                        Allocator                          *basicAllocator = 0);
-    explicit SequentialAllocator_REAL(int        initialSize,
+    explicit SequentialAllocator(int        initialSize,
                                  Allocator *basicAllocator = 0);
-    SequentialAllocator_REAL(
+    SequentialAllocator(
                        int                                 initialSize,
                        BufferAllocator::AlignmentStrategy  strategy,
                        Allocator                          *basicAllocator = 0);
@@ -332,10 +320,10 @@ class Allocator;
         // will have sufficient capacity to satisfy the request.  If *Geometric
         // Growth* is in effect, no limit is imposed on the size of buffers.
 
-    SequentialAllocator_REAL(char      *buffer,
+    SequentialAllocator(char      *buffer,
                         int        bufferSize,
                         Allocator *basicAllocator = 0);
-    SequentialAllocator_REAL(
+    SequentialAllocator(
                        char                               *buffer,
                        int                                 bufferSize,
                        BufferAllocator::AlignmentStrategy  strategy,
@@ -357,10 +345,10 @@ class Allocator;
         // sufficient capacity to satisfy the request.  If *Geometric Growth*
         // is in effect, no limit is imposed on the size of buffers.
 
-    SequentialAllocator_REAL(int        initialSize,
+    SequentialAllocator(int        initialSize,
                         int        maxBufferSize,
                         Allocator *basicAllocator = 0);
-    SequentialAllocator_REAL(
+    SequentialAllocator(
                        int                                 initialSize,
                        int                                 maxBufferSize,
                        BufferAllocator::AlignmentStrategy  strategy,
@@ -389,11 +377,11 @@ class Allocator;
         // overridden by a sufficiently large value passed to 'allocate' or
         // 'reserveCapacity'.
 
-    SequentialAllocator_REAL(char      *buffer,
+    SequentialAllocator(char      *buffer,
                         int        bufferSize,
                         int        maxBufferSize,
                         Allocator *basicAllocator = 0);
-    SequentialAllocator_REAL(
+    SequentialAllocator(
                        char                               *buffer,
                        int                                 bufferSize,
                        int                                 maxBufferSize,
@@ -423,7 +411,7 @@ class Allocator;
         // 'maxBufferSize' may be overridden by a sufficiently large value
         // passed to 'allocate' or 'reserveCapacity'.
 
-    virtual ~SequentialAllocator_REAL();
+    virtual ~SequentialAllocator();
         // Destroy this sequential allocator and release all associated memory.
 
     // MANIPULATORS
@@ -497,13 +485,13 @@ class Allocator;
 
 // CREATORS
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(Allocator *basicAllocator)
+SequentialAllocator::SequentialAllocator(Allocator *basicAllocator)
 : d_sequentialPool(basicAllocator)
 {
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(
+SequentialAllocator::SequentialAllocator(
                             BufferAllocator::AlignmentStrategy  strategy,
                             Allocator                          *basicAllocator)
 : d_sequentialPool(strategy, basicAllocator)
@@ -511,14 +499,14 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(int        initialSize,
+SequentialAllocator::SequentialAllocator(int        initialSize,
                                          Allocator *basicAllocator)
 : d_sequentialPool(initialSize, basicAllocator)
 {
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(
+SequentialAllocator::SequentialAllocator(
                             int                                 initialSize,
                             BufferAllocator::AlignmentStrategy  strategy,
                             Allocator                          *basicAllocator)
@@ -527,7 +515,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(char      *buffer,
+SequentialAllocator::SequentialAllocator(char      *buffer,
                                          int        bufferSize,
                                          Allocator *basicAllocator)
 : d_sequentialPool(buffer, bufferSize, basicAllocator)
@@ -535,7 +523,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(char      *buffer,
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(
+SequentialAllocator::SequentialAllocator(
                             char                               *buffer,
                             int                                 bufferSize,
                             BufferAllocator::AlignmentStrategy  strategy,
@@ -545,7 +533,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(int        initialSize,
+SequentialAllocator::SequentialAllocator(int        initialSize,
                                          int        maxBufferSize,
                                          Allocator *basicAllocator)
 : d_sequentialPool(initialSize, maxBufferSize, basicAllocator)
@@ -553,7 +541,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(int        initialSize,
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(
+SequentialAllocator::SequentialAllocator(
                             int                                 initialSize,
                             int                                 maxBufferSize,
                             BufferAllocator::AlignmentStrategy  strategy,
@@ -563,7 +551,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(char      *buffer,
+SequentialAllocator::SequentialAllocator(char      *buffer,
                                          int        bufferSize,
                                          int        maxBufferSize,
                                          Allocator *basicAllocator)
@@ -572,7 +560,7 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(char      *buffer,
 }
 
 inline
-SequentialAllocator_REAL::SequentialAllocator_REAL(
+SequentialAllocator::SequentialAllocator(
                             char                               *buffer,
                             int                                 bufferSize,
                             int                                 maxBufferSize,
@@ -584,36 +572,36 @@ SequentialAllocator_REAL::SequentialAllocator_REAL(
 
 // MANIPULATORS
 inline
-void *SequentialAllocator_REAL::allocate(size_type numBytes)
+void *SequentialAllocator::allocate(size_type numBytes)
 {
     return d_sequentialPool.allocate(static_cast<int>(numBytes));
 }
 
 inline
-void *SequentialAllocator_REAL::allocateAndExpand(int *size)
+void *SequentialAllocator::allocateAndExpand(int *size)
 {
     return d_sequentialPool.allocateAndExpand(size);
 }
 
 inline
-void *SequentialAllocator_REAL::allocateAndExpand(int *size, int maxNumBytes)
+void *SequentialAllocator::allocateAndExpand(int *size, int maxNumBytes)
 {
     return d_sequentialPool.allocateAndExpand(size, maxNumBytes);
 }
 
 inline
-void SequentialAllocator_REAL::deallocate(void *)
+void SequentialAllocator::deallocate(void *)
 {
 }
 
 inline
-int SequentialAllocator_REAL::expand(void *address, int originalNumBytes)
+int SequentialAllocator::expand(void *address, int originalNumBytes)
 {
     return d_sequentialPool.expand(address, originalNumBytes);
 }
 
 inline
-int SequentialAllocator_REAL::expand(void *address,
+int SequentialAllocator::expand(void *address,
                                 int   originalNumBytes,
                                 int   maxNumBytes)
 {
@@ -621,30 +609,24 @@ int SequentialAllocator_REAL::expand(void *address,
 }
 
 inline
-void SequentialAllocator_REAL::release()
+void SequentialAllocator::release()
 {
     d_sequentialPool.release();
 }
 
 inline
-void SequentialAllocator_REAL::reserveCapacity(int numBytes)
+void SequentialAllocator::reserveCapacity(int numBytes)
 {
     d_sequentialPool.reserveCapacity(numBytes);
 }
 
 inline
-int SequentialAllocator_REAL::truncate(void *address,
+int SequentialAllocator::truncate(void *address,
                                   int   originalNumBytes,
                                   int   newNumBytes)
 {
     return d_sequentialPool.truncate(address, originalNumBytes, newNumBytes);
 }
-
-#if BDE_USE_ORIGINAL_SEQUENTIALALLOCATOR
-typedef SequentialAllocator_REAL SequentialAllocator;
-#else
-typedef bslma::ShimAllocator SequentialAllocator;
-#endif
 
 }  // close package namespace
 
@@ -653,7 +635,7 @@ typedef bslma::ShimAllocator SequentialAllocator;
 //                           BACKWARD COMPATIBILITY
 // ============================================================================
 
-typedef bslma::SequentialAllocator_REAL bslma_SequentialAllocator_REAL;
+typedef bslma::SequentialAllocator bslma_SequentialAllocator;
     // This alias is defined for backward compatibility.
 #endif  // BDE_OPENSOURCE_PUBLICATION -- BACKWARD_COMPATIBILITY
 
