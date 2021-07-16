@@ -1,12 +1,16 @@
-// bdlma_bufferedsequentialallocator.h                                -*-C++-*-
-#ifndef INCLUDED_BDLMA_BUFFEREDSEQUENTIALALLOCATOR
-#define INCLUDED_BDLMA_BUFFEREDSEQUENTIALALLOCATOR
-
 #include "/Users/emery/cheap/experimental/bde-config.h"
 
 #ifndef BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
-#define BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR 0
+#error "Missing definition."
 #endif
+
+#if !BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
+#error "NO SHIM YET"
+#endif
+
+// bdlma_bufferedsequentialallocator.h                                -*-C++-*-
+#ifndef INCLUDED_BDLMA_BUFFEREDSEQUENTIALALLOCATOR
+#define INCLUDED_BDLMA_BUFFEREDSEQUENTIALALLOCATOR
 
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
@@ -14,18 +18,18 @@ BSLS_IDENT("$Id: $")
 //@PURPOSE: Provide an efficient managed allocator using an external buffer.
 //
 //@CLASSES:
-//  bdlma::BufferedSequentialAllocator: allocator using an external buffer
+//  bdlma::BufferedSequentialAllocator_REAL: allocator using an external buffer
 //
 //@SEE_ALSO: bdlma_bufferedsequentialpool, bdlma_sequentialallocator
 //
 //@DESCRIPTION: This component provides a concrete mechanism,
-// 'bdlma::BufferedSequentialAllocator', that implements the
+// 'bdlma::BufferedSequentialAllocator_REAL', that implements the
 // 'bdlma::ManagedAllocator' protocol to very efficiently allocate
 // heterogeneous memory blocks (of varying, user-specified sizes) from an
 // external buffer supplied at construction:
 //..
 //   ,----------------------------------.
-//  ( bdlma::BufferedSequentialAllocator )
+//  ( bdlma::BufferedSequentialAllocator_REAL )
 //   `----------------------------------'
 //                   |        ctor/dtor
 //                   |        rewind
@@ -58,7 +62,7 @@ BSLS_IDENT("$Id: $")
 // Note that individually allocated memory blocks cannot be separately
 // deallocated.
 //
-// 'bdlma::BufferedSequentialAllocator' is typically used when users have a
+// 'bdlma::BufferedSequentialAllocator_REAL' is typically used when users have a
 // reasonable estimation of the amount of memory needed.  This amount of memory
 // would typically be created directly on the program stack, and used as the
 // initial external buffer of the allocator for very fast memory allocation.
@@ -70,7 +74,7 @@ BSLS_IDENT("$Id: $")
 // require dynamic memory allocation, and the performance of the allocator
 // degrades.
 //
-// The main difference between a 'bdlma::BufferedSequentialAllocator' and a
+// The main difference between a 'bdlma::BufferedSequentialAllocator_REAL' and a
 // 'bdlma::BufferedSequentialPool' is that, very often, the allocator is
 // maintained through a 'bslma::Allocator' pointer - hence, every call to
 // 'allocate' is a virtual function call, which is slower than invoking
@@ -102,7 +106,7 @@ BSLS_IDENT("$Id: $")
 ///-----
 // This section illustrates intended use of this component.
 //
-///Example 1: Using 'bdlma::BufferedSequentialAllocator' with Exact Calculation
+///Example 1: Using 'bdlma::BufferedSequentialAllocator_REAL' with Exact Calculation
 /// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Suppose we need to implement a method, 'calculate', that performs
 // calculations (where the specifics are not important to illustrate the use of
@@ -114,7 +118,7 @@ BSLS_IDENT("$Id: $")
 //  {
 //..
 // Since the amount of memory needed is known in advance, we can optimize the
-// memory allocation by using a 'bdlma::BufferedSequentialAllocator' to supply
+// memory allocation by using a 'bdlma::BufferedSequentialAllocator_REAL' to supply
 // memory for the vectors.  We can also prevent the vectors from resizing
 // (which triggers more allocations) by reserving for the specific capacity we
 // need:
@@ -133,7 +137,7 @@ BSLS_IDENT("$Id: $")
 //..
 //      bsls::AlignedBuffer<k_SIZE> bufferStorage;
 //
-//      bdlma::BufferedSequentialAllocator alloc(bufferStorage.buffer(),
+//      bdlma::BufferedSequentialAllocator_REAL alloc(bufferStorage.buffer(),
 //                                               k_SIZE);
 //
 //      bsl::vector<double> v1(&alloc);     v1.reserve(100);
@@ -143,10 +147,10 @@ BSLS_IDENT("$Id: $")
 //      return data.empty() ? 0.0 : data.front();
 //  }
 //..
-// By making use of a 'bdlma::BufferedSequentialAllocator', *all* dynamic
+// By making use of a 'bdlma::BufferedSequentialAllocator_REAL', *all* dynamic
 // memory allocation is eliminated in the above example.
 //
-///Example 2: Using 'bdlma::BufferedSequentialAllocator' with Fallback
+///Example 2: Using 'bdlma::BufferedSequentialAllocator_REAL' with Fallback
 ///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Suppose we are receiving updates for price quotes for a list of securities
 // through the following function:
@@ -156,7 +160,7 @@ BSLS_IDENT("$Id: $")
 //      // list of securities.
 //..
 // Furthermore, suppose the number of securities we are interested in is
-// limited.  We can then use a 'bdlma::BufferedSequentialAllocator' to optimize
+// limited.  We can then use a 'bdlma::BufferedSequentialAllocator_REAL' to optimize
 // memory allocation for the 'bsl::map'.  We first create a buffer on the
 // stack:
 //..
@@ -178,14 +182,14 @@ BSLS_IDENT("$Id: $")
 // used the average security size instead of the maximum security size.  We
 // also assume that a 'bsl::map's node size is roughly the size of 4 pointers.
 //..
-//  bdlma::BufferedSequentialAllocator bsa(bufferStorage.buffer(),
+//  bdlma::BufferedSequentialAllocator_REAL bsa(bufferStorage.buffer(),
 //                                         k_TOTAL_SIZE,
 //                                         &objectAllocator);
 //  bsl::map<bsl::string, double> updateMap(&bsa);
 //
 //  receivePriceQuotes(&updateMap);
 //..
-// With the use of a 'bdlma::BufferedSequentialAllocator', we can be reasonably
+// With the use of a 'bdlma::BufferedSequentialAllocator_REAL', we can be reasonably
 // assured that the memory allocation performance is optimized (i.e., minimal
 // use of dynamic allocation).
 
@@ -201,21 +205,11 @@ BSLS_IDENT("$Id: $")
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
 
-#include "/Users/emery/cheap/experimental/bde-config.h"
-
-#ifndef BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
-#error "Missing definition."
-#endif
-
-#if !BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
-#include "/Users/emery/cheap/experimental/shim_allocator.hpp"
-#endif
-
 namespace BloombergLP {
 namespace bdlma {
 
                     // =================================
-                    // class BufferedSequentialAllocator
+                    // class BufferedSequentialAllocator_REAL
                     // =================================
 
 class BufferedSequentialAllocator_REAL : public ManagedAllocator {
@@ -489,12 +483,12 @@ void BufferedSequentialAllocator_REAL::rewind()
 #if BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
 typedef BufferedSequentialAllocator_REAL BufferedSequentialAllocator;
 #else
-typedef bslma::ShimAllocator BufferedSequentialAllocator;
+typedef ShimBufferedSequentialAllocator BufferedSequentialAllocator;
 #endif
+
 
 }  // close package namespace
 }  // close enterprise namespace
-
 
 #endif
 
