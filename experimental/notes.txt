@@ -1,3 +1,5 @@
+kernel.marker for timing; failing that, terminate
+
 Results for test-shim-buffermanager:
 
 Linux ARM, Mac Mini:
