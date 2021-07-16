@@ -31,6 +31,10 @@ public:
     ::free(b);
   }
 
+  bool isEmpty() {
+    return _list.isEmpty();
+  }
+  
   void release() {
     // Iterate through the list, freeing each item.
     auto * e = _list.get();
