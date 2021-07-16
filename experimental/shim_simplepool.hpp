@@ -6,7 +6,7 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-#include "simregion.hpp"
+#include "simpool.hpp"
 
 #if defined(BSL_OVERRIDES_STD) && !defined(BOS_STDHDRS_PROLOGUE_IN_EFFECT)
 #error "<bslstl_simplepool.h> header can't be included directly in \
@@ -52,13 +52,12 @@ class SimplePool : public SHIM_SimplePool_Type<ALLOCATOR>::AllocatorType {
 private:
 
   static constexpr int SIZE = 8;
-  SimRegion * _allocVector { nullptr };
+  SimPool * _allocVector { nullptr };
   
     // PRIVATE TYPES
     typedef SHIM_SimplePool_Type<ALLOCATOR> Types;
 
-  int blocksInUse { 0 };
-  int blocksAllocated { 0 };
+  int _blocksFreed { 0 };
   
   public:
     // TYPES
@@ -172,7 +171,7 @@ template <class VALUE, class ALLOCATOR>
 inline
 SimplePool<VALUE, ALLOCATOR>::SimplePool(const ALLOCATOR& allocator)
   : AllocatorType(allocator),
-    _allocVector (new SimRegion(SIZE))
+    _allocVector (new SimPool)
 {
 }
 
@@ -181,7 +180,7 @@ inline
 SimplePool<VALUE, ALLOCATOR>::SimplePool(
                                         bslmf::MovableRef<SimplePool> original)
   : AllocatorType(bslmf::MovableRefUtil::access(original).allocator()),
-    _allocVector (new SimRegion(SIZE))
+    _allocVector (new SimPool)
 {
     SimplePool& lvalue = original;
 }
@@ -204,7 +203,7 @@ SimplePool<VALUE, ALLOCATOR>::adopt(bslmf::MovableRef<SimplePool> pool)
 
     SimplePool& lvalue = pool;
     _allocVector = lvalue._allocVector;
-    lvalue._allocVector = new SimRegion(SIZE);
+    lvalue._allocVector = new SimPool;
 }
 
 template <class VALUE, class ALLOCATOR>
@@ -219,7 +218,8 @@ template <class VALUE, class ALLOCATOR>
 inline
 VALUE *SimplePool<VALUE, ALLOCATOR>::allocate()
 {
-  return (VALUE *) _allocVector->allocate(sizeof(VALUE));
+  _blocksFreed--;
+  return (VALUE *) _allocVector->malloc(sizeof(VALUE));
 }
 
 template <class VALUE, class ALLOCATOR>
@@ -227,7 +227,8 @@ inline
 void SimplePool<VALUE, ALLOCATOR>::deallocate(void *address)
 {
     BSLS_ASSERT_SAFE(address);
-    // DISABLE FOR NOW. POSSIBLY FIXME
+    _blocksFreed++;
+    _allocVector->free(address);
 }
 
 template <class VALUE, class ALLOCATOR>
@@ -260,6 +261,7 @@ void SimplePool<VALUE, ALLOCATOR>::quickSwapExchangeAllocators(
 template <class VALUE, class ALLOCATOR>
 void SimplePool<VALUE, ALLOCATOR>::reserve(size_type numBlocks)
 {
+  _blocksFreed += numBlocks;
 }
 
 template <class VALUE, class ALLOCATOR>
@@ -289,7 +291,7 @@ template <class VALUE, class ALLOCATOR>
 inline
 bool SimplePool<VALUE, ALLOCATOR>::hasFreeBlocks() const
 {
-  return true;
+  return (_blocksFreed > 0) || !_allocVector->isEmpty();
 }
 
 }  // close package namespace
