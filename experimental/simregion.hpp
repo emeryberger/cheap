@@ -103,8 +103,8 @@ public:
   void release()
   {
     rewind();
-    _allocated.shrink_to_fit();
-    _allocated.reserve(_vectorInitialSize);
+    /// _allocated.shrink_to_fit();
+    ///    _allocated.reserve(_vectorInitialSize);
   }
   
 private:
