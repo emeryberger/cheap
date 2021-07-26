@@ -96,20 +96,19 @@ int main(int argc, char* argv[]) {
   }
 
   if (result.count("page-litter-v2")) {
+    std::cout << "(page-litter-v2: seed = " << seed << ")" << std::endl;
     volatile PageLittererV2 frag(ObjectSize, ObjectSize, Iterations, seed);
-    std::cout << "(page-litter-v2: seed = " << seed << ")";
   } else if (result.count("page-litter-v1")) {
+    std::cout << "(page-litter-v1: seed = " << seed << ")" << std::endl;
     volatile PageLittererV1 frag(ObjectSize, ObjectSize, Iterations, seed);
-    std::cout << "(page-litter-v1: seed = " << seed << ")";
   } else {
+    if (result.count("shuffle")) {
+      std::cout << "(shuffled: seed = " << seed << ") " << std::endl;
+    }
     volatile Litterer frag(ObjectSize, ObjectSize, litterObjects, (int) (litterOccupancy * 100), 100,
                            result.count("shuffle"), seed);
-    if (result.count("shuffle")) {
-      std::cout << "(shuffled: seed = " << seed << ") ";
-    }
   }
 
-  std::cout << std::endl;
   std::cout << "working set = " << WorkingSet << " bytes " << std::endl;
   std::cout << "object size = " << ObjectSize << std::endl;
   std::cout << "bytes to read = " << BytesToRead << std::endl;
