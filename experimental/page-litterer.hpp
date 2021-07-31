@@ -14,6 +14,13 @@
 #include <random>
 #include <set>
 
+#ifdef TRACE_MALLOC
+#include <stdint.h> // SIZE_MAX
+#define START_LOGGING (SIZE_MAX - 1)
+#define STOP_LOGGING (SIZE_MAX - 2)
+static void* volatile _;
+#endif
+
 #ifndef __APPLE__
 long abs(long l) { return (l < 0L) ? -l : l; }
 #endif
@@ -29,13 +36,20 @@ public:
     std::default_random_engine gen(Seed);
     std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
+    int NAllocations = 0;
     int pagesFilled = 0;
     long currentPageFill = 0;
+
+    int AverageObjectSize = (MinSize + MaxSize) / 2;
+    for (int i = 0; i < NPages; ++i) {
+      allocated[i].reserve((PageSize / AverageObjectSize) * 1.05);
+    }
 
     while (pagesFilled != NPages) {
       size_t size = dist(gen);
       auto ptr = ::malloc(size);
       allocated[pagesFilled].push_back(ptr);
+      ++NAllocations;
 
       currentPageFill += ::malloc_usable_size(ptr);
       if (currentPageFill >= PageSize) {
@@ -49,6 +63,8 @@ public:
       int index = dist(gen);
       free(allocated[i][index]);
     }
+
+    std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
   }
 };
 
@@ -65,8 +81,13 @@ public:
     std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
     int AverageObjectSize = (MinSize + MaxSize) / 2;
-    int NAllocations = guess(AverageObjectSize, 0, 0, NPages, PageSize);
+    // We add 5% to our initial guess to make it quasi-impossible to have a second set of allocations.
+    int NAllocations = guess(AverageObjectSize, 0, 0, NPages, PageSize) * 1.05;
     int PagesFilled = 0;
+
+    #ifdef TRACE_MALLOC
+    _ = ::malloc(START_LOGGING);
+    #endif
 
     while (PagesFilled < NPages) {
       allocated.reserve(NAllocations);
@@ -106,15 +127,20 @@ public:
       }
     }
 
+    #ifdef TRACE_MALLOC
+    _ = ::malloc(STOP_LOGGING);
+    #endif
+
+    std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
+
     assert(PagesFilled >= NPages);
   }
 
 private:
   // Estimate total allocations that would be needed to reach the goal.
-  // The first estimate seems to be overshooting in a majority of cases anyway because of alignment and metadata.
   int guess(int AverageObjectSize, int AlreadyAllocated, int PagesFilled, int TargetPages, long PageSize) {
-    return (AlreadyAllocated && PagesFilled) ? (AlreadyAllocated * TargetPages) / PagesFilled
-                                             : (TargetPages * PageSize) / AverageObjectSize;
+    return (AlreadyAllocated && PagesFilled) ? ((long long int) AlreadyAllocated) * TargetPages / PagesFilled
+                                             : ((long long int) TargetPages) * PageSize / AverageObjectSize;
   }
 };
 
