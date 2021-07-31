@@ -49,8 +49,8 @@ class ShimBufferManager {
     unsigned char           d_alignmentOrMask;   // a mask used during the
                                                  // alignment calculation
 
-  static constexpr int SIZE = 8;
-  SimRegion * _allocVector { nullptr };
+  static constexpr int SIZE = 8; // FIXME NOT CURRENTLY USED
+  SimRegion _allocVector;
 #if COLLECT_STATS
   size_t _allocations;  // total number of allocations
   size_t _allocated;    // total bytes allocated
@@ -234,16 +234,16 @@ ShimBufferManager::ShimBufferManager(bsls::Alignment::Strategy strategy)
                      : 0)
 , d_alignmentOrMask(  strategy != bsls::Alignment::BSLS_BYTEALIGNED
                     ? bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT
-		      : 1),
+		      : 1)
 #if COLLECT_STATS
-    _allocations(0),
+,_allocations(0),
     _allocated(0),
     _frees(0),
     _deallocations(0),
     _rewinds(0),
-    _releases(0),
+    _releases(0)
 #endif
-  _allocVector (new SimRegion(SIZE))
+  //  _allocVector (new SimRegion(SIZE))
 {
 }
 
@@ -259,16 +259,16 @@ ShimBufferManager::ShimBufferManager(char                      *buffer,
                      : 0)
 , d_alignmentOrMask(  strategy != bsls::Alignment::BSLS_BYTEALIGNED
                     ? bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT
-		      : 1),
+		      : 1)
 #if COLLECT_STATS
-    _allocations(0),
+,_allocations(0),
     _allocated(0),
     _frees(0),
     _deallocations(0),
     _rewinds(0),
-    _releases(0),
+    _releases(0)
 #endif
-  _allocVector (new SimRegion((unsigned int) bufferSize))
+  //  _allocVector (new SimRegion((unsigned int) bufferSize))
 {
 }
 
@@ -277,20 +277,21 @@ ShimBufferManager::~ShimBufferManager()
 {
   release();
   printStats();
-  delete _allocVector;
+  //  delete _allocVector;
 }
 
 // MANIPULATORS
 inline
 void *ShimBufferManager::allocate(bsls::Types::size_type size)
 {
-  return _allocVector->allocate(size);
+  //  fprintf(stderr, "ShimBufferManager::allocate(%lu)\n", size);
+  return _allocVector.allocate(size);
 }
 
 inline
 void *ShimBufferManager::allocateRaw(bsls::Types::size_type size)
 {
-  return _allocVector->allocate(size);
+  return _allocVector.allocate(size);
 }
 
 template <class TYPE>
@@ -303,7 +304,7 @@ void ShimBufferManager::deleteObjectRaw(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	_allocVector->deallocate(object);
+	_allocVector.deallocate(object);
     }
 }
 
@@ -335,13 +336,13 @@ void ShimBufferManager::release()
 #if COLLECT_STATS
     _releases++;
 #endif
-    _allocVector->release();
+    _allocVector.release();
 }
 
 inline
 void ShimBufferManager::reset()
 {
-  _allocVector->rewind();
+  _allocVector.rewind();
   d_buffer_p = 0;
   d_cursor = 0;
 }
