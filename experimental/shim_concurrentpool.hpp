@@ -515,7 +515,7 @@ void ShimConcurrentPool::deleteObject(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	pool.deallocate(object);
+	pool.free(object);
     }
 }
 
@@ -568,16 +568,14 @@ void *operator new(bsl::size_t size, BloombergLP::bdlma::ShimConcurrentPool& poo
 #endif
 
     static_cast<void>(size);  // suppress "unused parameter" warnings
-    return pool.malloc(size);
+    return pool.allocate();
 }
 
 inline
 void operator delete(void *address, BloombergLP::bdlma::ShimConcurrentPool& pool)
 {
-    pool.free(address);
+    pool.deallocate(address);
 }
-
-#endif
 
 // ----------------------------------------------------------------------------
 // Copyright 2016 Bloomberg Finance L.P.
