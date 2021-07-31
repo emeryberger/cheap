@@ -24,10 +24,8 @@ public:
     return (sz + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
   }
 
-  SimRegion(unsigned int size = VECTOR_INITIAL_SIZE)
-    : _vectorInitialSize (size)
+  SimRegion(unsigned int SIZE = 0)
   {
-    _allocated.reserve(_vectorInitialSize);
   }
   
   ~SimRegion() {
@@ -41,7 +39,7 @@ public:
     return ::malloc_size(ptr);
 #endif
   }
-  
+
   inline void * malloc(size_t sz) {
     if (sz == 0) {
       return nullptr;
@@ -103,14 +101,11 @@ public:
   void release()
   {
     rewind();
-    /// _allocated.shrink_to_fit();
-    ///    _allocated.reserve(_vectorInitialSize);
   }
   
 private:
 
   std::vector<void *> _allocated;
-  size_t _vectorInitialSize;
 };
 
 #endif // SIMREGION_HPP
