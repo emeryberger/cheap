@@ -515,7 +515,7 @@ void ShimConcurrentPool::deleteObject(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	pool.free(object);
+	pool.free(const_cast<TYPE *>(object));
     }
 }
 
