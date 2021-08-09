@@ -10,7 +10,7 @@ INCLUDES = -I$(BDL)/bdlma -I$(BDL)/bdlscm -I$(BSL)/bsl+bslhdrs -I$(BSL)/bsla -I$
 LIBROOT = $(BDE)/_build/$(BDE_BUILD_TARGET)
 
 LIBS = -L$(LIBROOT) -lbdl -lbsl -lbsls
-CXXFLAGS = -std=c++17 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
+CXXFLAGS = -std=c++14 $(INCLUDES) -g -O3 -DNDEBUG # -fsanitize=address
 
 all: test-shim-simplepool test-buffer-manager 
 
