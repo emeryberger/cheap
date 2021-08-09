@@ -46,13 +46,27 @@ public:
     std::vector<void *> allocated_copy (NObjects);
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
 
+    intptr_t minAddress = -1;
+    intptr_t maxAddress = -1;
+
     // Allocate a bunch of objects from a range of sizes.
     for (auto i = 0UL; i < NObjects; i++) {
       size_t size = dist(*gen);
       auto ptr = ::malloc(size);
       allocated[i] = ptr;
       allocated_copy[i] = ptr;
+
+      if ((intptr_t) ptr < minAddress || minAddress == -1) {
+        minAddress = (intptr_t) ptr;
+      }
+
+      if ((intptr_t) ptr > maxAddress || maxAddress == -1) {
+        maxAddress = (intptr_t) ptr;
+      }
     }
+
+    std::cout << "Allocated " << NObjects << " objects..." << std::endl;
+    std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
 
     assert(allocated.size() == NObjects);
     

@@ -14,13 +14,6 @@
 #include <random>
 #include <set>
 
-#ifdef TRACE_MALLOC
-#include <stdint.h> // SIZE_MAX
-#define START_LOGGING (SIZE_MAX - 1)
-#define STOP_LOGGING (SIZE_MAX - 2)
-static void* volatile _;
-#endif
-
 #ifndef __APPLE__
 long abs(long l) { return (l < 0L) ? -l : l; }
 #endif
@@ -40,6 +33,9 @@ public:
     int pagesFilled = 0;
     long currentPageFill = 0;
 
+    intptr_t minAddress = -1;
+    intptr_t maxAddress = -1;
+
     int AverageObjectSize = (MinSize + MaxSize) / 2;
     for (int i = 0; i < NPages; ++i) {
       allocated[i].reserve((PageSize / AverageObjectSize) * 1.05);
@@ -50,6 +46,14 @@ public:
       auto ptr = ::malloc(size);
       allocated[pagesFilled].push_back(ptr);
       ++NAllocations;
+
+      if (minAddress == -1 || ((intptr_t) ptr) < minAddress) {
+        minAddress = (intptr_t) ptr;
+      }
+
+      if (maxAddress == -1 || ((intptr_t) ptr) > maxAddress) {
+        maxAddress = (intptr_t) ptr;
+      }
 
       currentPageFill += ::malloc_usable_size(ptr);
       if (currentPageFill >= PageSize) {
@@ -65,6 +69,7 @@ public:
     }
 
     std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
+    std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
   }
 };
 
@@ -85,10 +90,6 @@ public:
     int NAllocations = guess(AverageObjectSize, 0, 0, NPages, PageSize) * 1.05;
     int PagesFilled = 0;
 
-    #ifdef TRACE_MALLOC
-    _ = ::malloc(START_LOGGING);
-    #endif
-
     while (PagesFilled < NPages) {
       allocated.reserve(NAllocations);
 
@@ -101,10 +102,10 @@ public:
       // Recount how many pages our current allocations are filling.
       std::sort(allocated.begin(), allocated.end());
       PagesFilled = 0;
-      char* previous = (char*) allocated[0];
+      intptr_t previous = (intptr_t) allocated[0];
       for (int i = 1; i < allocated.size(); ++i) {
-        if (abs((char*) allocated[i] - previous) >= PageSize) {
-          previous = (char*) allocated[i];
+        if (abs((intptr_t) allocated[i] - previous) >= PageSize) {
+          previous = (intptr_t) allocated[i];
           ++PagesFilled;
         }
       }
@@ -116,22 +117,21 @@ public:
     }
 
     // allocated is already sorted.
+    
+    std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
+    intptr_t minAddress = (intptr_t) allocated[0];
+    intptr_t maxAddress = (intptr_t) allocated[allocated.size() - 1];
+    std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
 
     PagesFilled = 0;
-    char* previous = (char*) allocated[0];
+    intptr_t previous = (intptr_t) allocated[0];
     for (int i = 1; i < allocated.size(); ++i) {
-      if (abs((char*) allocated[i] - previous) >= PageSize) {
-        ::free(previous);
-        previous = (char*) allocated[i];
+      if (abs((intptr_t) allocated[i] - previous) >= PageSize) {
+        ::free((void*) previous);
+        previous = (intptr_t) allocated[i];
         ++PagesFilled;
       }
     }
-
-    #ifdef TRACE_MALLOC
-    _ = ::malloc(STOP_LOGGING);
-    #endif
-
-    std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
 
     assert(PagesFilled >= NPages);
   }

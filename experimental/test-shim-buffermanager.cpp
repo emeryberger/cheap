@@ -115,6 +115,7 @@ int main(int argc, char* argv[]) {
   std::cout << "litter occupancy = " << litterOccupancy << std::endl;
   std::cout << "loops = " << Loops << std::endl;
   std::cout << "locality iterations = " << localityIterations << std::endl;
+  std::cout << "iterations = " << Iterations << std::endl;
 
   using namespace BloombergLP;
   char* buf = new char[Iterations * ObjectSize];
