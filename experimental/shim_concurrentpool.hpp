@@ -342,15 +342,21 @@ class ShimConcurrentPool {
 
   public:
     // CREATORS
-    explicit ShimConcurrentPool(bsls::Types::size_type  blockSize,
-                            bslma::Allocator       *basicAllocator = 0);
-    ShimConcurrentPool(bsls::Types::size_type       blockSize,
-                   bsls::BlockGrowth::Strategy  growthStrategy,
-                   bslma::Allocator            *basicAllocator = 0);
-    ShimConcurrentPool(bsls::Types::size_type       blockSize,
-                   bsls::BlockGrowth::Strategy  growthStrategy,
-                   int                          maxBlocksPerChunk,
-                   bslma::Allocator            *basicAllocator = 0);
+  explicit ShimConcurrentPool(bsls::Types::size_type  blockSize,
+			      bslma::Allocator *      /* basicAllocator */ = 0) {
+    d_blockSize = blockSize;
+  }
+  ShimConcurrentPool(bsls::Types::size_type       blockSize,
+		     bsls::BlockGrowth::Strategy  /* growthStrategy */,
+		     bslma::Allocator  *          /* basicAllocator */ = 0) {
+    d_blockSize = blockSize;
+  }
+  ShimConcurrentPool(bsls::Types::size_type       blockSize,
+		       bsls::BlockGrowth::Strategy  /* growthStrategy */,
+		       int                          /* maxBlocksPerChunk */,
+		       bslma::Allocator            * /* basicAllocator */ = 0) {
+    d_blockSize = blockSize;
+  }
         // Create a memory pool that returns blocks of contiguous memory of the
         // specified 'blockSize' (in bytes) for each 'allocate' method
         // invocation.  Optionally specify a 'growthStrategy' used to control
@@ -367,16 +373,21 @@ class ShimConcurrentPool {
         // used.  The behavior is undefined unless '1 <= blockSize' and
         // '1 <= maxBlocksPerChunk'.
 
-    ~ShimConcurrentPool();
+  ~ShimConcurrentPool() {}
         // Destroy this pool, releasing all associated memory back to the
         // underlying allocator.
 
     // MANIPULATORS
-    void *allocate();
+  void *allocate() {
+    return pool.malloc(d_blockSize);
+  }
+  
         // Return the address of a contiguous block of memory having the fixed
         // block size specified at construction.
 
-    void deallocate(void *address);
+  void deallocate(void *address) {
+    pool.free(address);
+  }
         // Relinquish the memory block at the specified 'address' back to this
         // pool object for reuse.  The behavior is undefined unless 'address'
         // is non-zero, was allocated by this pool, and has not already been
@@ -404,13 +415,14 @@ class ShimConcurrentPool {
     void release();
         // Relinquish all memory currently allocated via this pool object.
 
-    void reserveCapacity(int numBlocks);
+  void reserveCapacity(int /* numBlocks */) {
+  }
         // Reserve memory from this pool to satisfy memory requests for at
         // least the specified 'numBlocks' before the pool replenishes.  The
         // behavior is undefined unless '0 <= numBlocks'.
 
     // ACCESSORS
-    bsls::Types::size_type blockSize() const;
+  bsls::Types::size_type blockSize() const;
         // Return the size (in bytes) of the memory blocks allocated from this
         // pool object.  Note that all blocks dispensed by this pool have the
         // same size.
