@@ -326,6 +326,7 @@ class ShimConcurrentPool {
 
     bslmt::Mutex      d_mutex;           // protects access to the block list
 
+
   SimPool pool;
   
     // PRIVATE MANIPULATORS
@@ -341,6 +342,15 @@ class ShimConcurrentPool {
     ShimConcurrentPool& operator=(const ShimConcurrentPool&);
 
   public:
+
+  void lock() {
+    d_mutex.lock();
+  }
+
+  void unlock() {
+    d_mutex.unlock();
+  }
+  
     // CREATORS
   explicit ShimConcurrentPool(bsls::Types::size_type  blockSize,
 			      bslma::Allocator *      /* basicAllocator */ = 0) {
@@ -382,6 +392,7 @@ class ShimConcurrentPool {
     d_mutex.lock();
     auto ptr = pool.malloc(d_blockSize);
     d_mutex.unlock();
+    return ptr;
   }
   
         // Return the address of a contiguous block of memory having the fixed
@@ -588,17 +599,18 @@ void *operator new(bsl::size_t size, BloombergLP::bdlma::ShimConcurrentPool& poo
 #endif
 
     static_cast<void>(size);  // suppress "unused parameter" warnings
-    d_mutex.lock();
+    pool.lock();
     auto ptr = pool.allocate();
-    d_mutex.unlock();
+    pool.unlock();
+    return ptr;
 }
 
 inline
 void operator delete(void *address, BloombergLP::bdlma::ShimConcurrentPool& pool)
 {
-    d_mutex.lock();
+    pool.lock();
     pool.deallocate(address);
-    d_mutex.unlock();
+    pool.unlock();
 }
 
 // ----------------------------------------------------------------------------
