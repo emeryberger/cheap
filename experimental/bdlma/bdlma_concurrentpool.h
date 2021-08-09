@@ -7,7 +7,6 @@
 #endif
 
 #if !BDE_USE_ORIGINAL_CONCURRENTPOOL
-#warning "SHIM CONCURRENTPOOL"
 #include "/Users/emery/cheap/experimental/shim_concurrentpool.hpp"
 #endif
 
@@ -514,6 +513,18 @@ void operator delete(void *address, BloombergLP::bdlma::ConcurrentPool_REAL& poo
 namespace BloombergLP {
 namespace bdlma {
 
+#if BDE_USE_ORIGINAL_CONCURRENTPOOL
+class ConcurrentPool : public ConcurrentPool_REAL {
+public:
+  using ConcurrentPool_REAL::ConcurrentPool_REAL;
+};
+#else
+class ConcurrentPool : public ShimConcurrentPool {
+public:
+  using ShimConcurrentPool::ShimConcurrentPool;
+};
+#endif
+  
                            // --------------------
                            // class ConcurrentPool_REAL
                            // --------------------
@@ -557,15 +568,16 @@ bslma::Allocator *ConcurrentPool_REAL::allocator() const
     return d_blockList.allocator();
 }
 
-#if BDE_USE_ORIGINAL_CONCURRENTPOOL
-#warn "USING ORIGINAL CONCURRENT POOL"
-typedef ConcurrentPool_REAL ConcurrentPool;
-#else
-typedef ShimConcurrentPool ConcurrentPool;
-#endif
+  //#if BDE_USE_ORIGINAL_CONCURRENTPOOL
+  //#warning "USING ORIGINAL CONCURRENT POOL"
+  //  using ConcurrentPool = ConcurrentPool_REAL;
+  //#else
+  //  using ConcurrentPool = ShimConcurrentPool;
+  //#endif
 
 }  // close package namespace
 }  // close enterprise namespace
+
 
 // FREE OPERATORS
 inline
@@ -591,6 +603,7 @@ void operator delete(void *address, BloombergLP::bdlma::ConcurrentPool_REAL& poo
 {
     pool.deallocate(address);
 }
+
 
 #endif
 
