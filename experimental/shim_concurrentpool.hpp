@@ -379,14 +379,18 @@ class ShimConcurrentPool {
 
     // MANIPULATORS
   void *allocate() {
-    return pool.malloc(d_blockSize);
+    d_mutex.lock();
+    auto ptr = pool.malloc(d_blockSize);
+    d_mutex.unlock();
   }
   
         // Return the address of a contiguous block of memory having the fixed
         // block size specified at construction.
 
   void deallocate(void *address) {
+    d_mutex.lock();
     pool.free(address);
+    d_mutex.unlock();
   }
         // Relinquish the memory block at the specified 'address' back to this
         // pool object for reuse.  The behavior is undefined unless 'address'
@@ -527,7 +531,9 @@ void ShimConcurrentPool::deleteObject(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
+	d_mutex.lock();
 	pool.free(const_cast<TYPE *>(object));
+	d_mutex.unlock();
     }
 }
 
@@ -535,7 +541,9 @@ template<class TYPE>
 inline
 void ShimConcurrentPool::deleteObjectRaw(const TYPE *object)
 {
+  d_mutex.lock();
   deleteObjectRaw(object);
+  d_mutex.unlock();
 }
 
 inline
@@ -580,13 +588,17 @@ void *operator new(bsl::size_t size, BloombergLP::bdlma::ShimConcurrentPool& poo
 #endif
 
     static_cast<void>(size);  // suppress "unused parameter" warnings
-    return pool.allocate();
+    d_mutex.lock();
+    auto ptr = pool.allocate();
+    d_mutex.unlock();
 }
 
 inline
 void operator delete(void *address, BloombergLP::bdlma::ShimConcurrentPool& pool)
 {
+    d_mutex.lock();
     pool.deallocate(address);
+    d_mutex.unlock();
 }
 
 // ----------------------------------------------------------------------------
