@@ -75,8 +75,10 @@ public:
       free(ptr);
     }
 
+    #ifndef NODEBUG
     std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
     std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
+    #endif
   }
 };
 
@@ -125,10 +127,12 @@ public:
 
     // allocated is already sorted.
     
+    #ifndef NODEBUG
     std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
     intptr_t minAddress = (intptr_t) allocated[0];
     intptr_t maxAddress = (intptr_t) allocated[allocated.size() - 1];
     std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
+    #endif
 
     std::vector<void*> toBeFreed = *(new std::vector<void*>);
     toBeFreed.reserve(PagesFilled);

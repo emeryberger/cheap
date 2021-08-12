@@ -84,11 +84,13 @@ int main(int argc, char* argv[]) {
     BytesToRead = result["bytes-to-read"].as<int>();
   }
 
+  #ifndef NODEBUG
   if (result.count("buffer")) {
     std::cout << "using BufferManager ";
   } else {
     std::cout << "using ShimBufferManager ";
   }
+  #endif
 
   int localityIterations = 1000;
   if (result.count("locality-iterations")) {
@@ -96,20 +98,33 @@ int main(int argc, char* argv[]) {
   }
 
   if (result.count("page-litter-v2")) {
+    #ifndef NODEBUG
     std::cout << "(page-litter-v2: seed = " << seed << ")" << std::endl;
+    #endif
+    
     volatile PageLittererV2 frag(ObjectSize, ObjectSize, Iterations, seed);
   } else if (result.count("page-litter-v1")) {
+    #ifndef NODEBUG
     std::cout << "(page-litter-v1: seed = " << seed << ")" << std::endl;
+    #endif
+
     volatile PageLittererV1 frag(ObjectSize, ObjectSize, Iterations, seed);
+  } else if (result.count("shuffle")) {
+    #ifndef NODEBUG
+    std::cout << "(shuffled: seed = " << seed << ") " << std::endl;
+    #endif
+    volatile Litterer frag(ObjectSize, ObjectSize, litterObjects, (int) (litterOccupancy * 100), 100, seed);
   } else {
-    if (result.count("shuffle")) {
-      std::cout << "(shuffled: seed = " << seed << ") ";
-    }
+    #ifndef NODEBUG
     std::cout << std::endl;
-    volatile Litterer frag(ObjectSize, ObjectSize, litterObjects, (int) (litterOccupancy * 100), 100,
-                           result.count("shuffle"), seed);
+    #endif
   }
 
+  #ifdef TRACE_MALLOC
+  _ = malloc(HMT_CHECKPOINT);
+  #endif
+
+  #ifndef NODEBUG
   std::cout << "working set = " << WorkingSet << " bytes " << std::endl;
   std::cout << "object size = " << ObjectSize << std::endl;
   std::cout << "bytes to read = " << BytesToRead << std::endl;
@@ -124,9 +139,12 @@ int main(int argc, char* argv[]) {
   BloombergLP::bdlma::BufferManager mgr_buffer(buf, Iterations * ObjectSize);
   bdlma::ShimBufferManager mgr_shim(nullptr, Iterations);
   auto which_buf = result.count("buffer");
+
+  #ifndef NODEBUG
   if (which_buf) {
     std::cout << "buffer starts at " << (void*) buf << std::endl;
   }
+  #endif
 
   // Start the actual benchmark.
 
@@ -165,6 +183,9 @@ int main(int argc, char* argv[]) {
   delete[] buf;
   high_resolution_clock::time_point t3 = high_resolution_clock::now();
   duration<double> time_span2 = duration_cast<duration<double>>(t3 - t1);
-  std::cout << "Time elapsed = " << time_span2.count() - time_span.count() << std::endl;
+  #ifndef NODEBUG
+  std::cout << "Time elapsed = ";
+  #endif
+  std::cout << time_span2.count() - time_span.count() << std::endl;
   return 0;
 }
