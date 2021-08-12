@@ -103,8 +103,9 @@ int main(int argc, char* argv[]) {
     volatile PageLittererV1 frag(ObjectSize, ObjectSize, Iterations, seed);
   } else {
     if (result.count("shuffle")) {
-      std::cout << "(shuffled: seed = " << seed << ") " << std::endl;
+      std::cout << "(shuffled: seed = " << seed << ") ";
     }
+    std::cout << std::endl;
     volatile Litterer frag(ObjectSize, ObjectSize, litterObjects, (int) (litterOccupancy * 100), 100,
                            result.count("shuffle"), seed);
   }

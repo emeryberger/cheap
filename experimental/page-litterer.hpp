@@ -62,10 +62,17 @@ public:
       }
     }
 
+    std::vector<void*> toBeFreed;
+    toBeFreed.reserve(NPages);
     for (int i = 0; i < NPages; ++i) {
       std::uniform_int_distribution<int> dist(0, allocated[i].size() - 1);
       int index = dist(gen);
-      free(allocated[i][index]);
+      toBeFreed.push_back(allocated[i][index]);
+    }
+
+    std::shuffle(toBeFreed.begin(), toBeFreed.end(), gen);
+    for (auto ptr : toBeFreed) {
+      free(ptr);
     }
 
     std::cout << "Allocated " << NAllocations << " objects..." << std::endl;
@@ -123,14 +130,20 @@ public:
     intptr_t maxAddress = (intptr_t) allocated[allocated.size() - 1];
     std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
 
-    PagesFilled = 0;
+    std::vector<void*> toBeFreed;
+    toBeFreed.reserve(PagesFilled);
+
     intptr_t previous = (intptr_t) allocated[0];
     for (int i = 1; i < allocated.size(); ++i) {
       if (abs((intptr_t) allocated[i] - previous) >= PageSize) {
-        ::free((void*) previous);
+        toBeFreed.push_back((void*) previous);
         previous = (intptr_t) allocated[i];
-        ++PagesFilled;
       }
+    }
+    
+    std::shuffle(toBeFreed.begin(), toBeFreed.end(), gen);
+    for (auto ptr : toBeFreed) {
+      free(ptr);
     }
 
     assert(PagesFilled >= NPages);
