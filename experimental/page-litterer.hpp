@@ -25,7 +25,7 @@ long abs(long l) { return (l < 0L) ? -l : l; }
 class PageLittererV1 {
 public:
   PageLittererV1(int MinSize, int MaxSize, int NPages, size_t Seed, long PageSize = sysconf(_SC_PAGESIZE)) {
-    std::vector<std::vector<void*>> allocated(NPages);
+    std::vector<std::vector<void*>> allocated = *(new std::vector<std::vector<void*>>(NPages));
     std::default_random_engine gen(Seed);
     std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
@@ -62,7 +62,7 @@ public:
       }
     }
 
-    std::vector<void*> toBeFreed;
+    std::vector<void*> toBeFreed = *(new std::vector<void*>);
     toBeFreed.reserve(NPages);
     for (int i = 0; i < NPages; ++i) {
       std::uniform_int_distribution<int> dist(0, allocated[i].size() - 1);
@@ -88,7 +88,7 @@ public:
 class PageLittererV2 {
 public:
   PageLittererV2(int MinSize, int MaxSize, int NPages, size_t Seed, long PageSize = sysconf(_SC_PAGESIZE)) {
-    std::vector<void*> allocated;
+    std::vector<void*> allocated = *(new std::vector<void*>);
     std::default_random_engine gen(Seed);
     std::uniform_int_distribution<int> dist(MinSize, MaxSize);
 
@@ -130,7 +130,7 @@ public:
     intptr_t maxAddress = (intptr_t) allocated[allocated.size() - 1];
     std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
 
-    std::vector<void*> toBeFreed;
+    std::vector<void*> toBeFreed = *(new std::vector<void*>);
     toBeFreed.reserve(PagesFilled);
 
     intptr_t previous = (intptr_t) allocated[0];

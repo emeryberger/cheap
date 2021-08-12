@@ -42,8 +42,8 @@ public:
       _seed = rd();
     }
     gen = new std::mt19937(_seed);
-    std::vector<void *> allocated (NObjects);
-    std::vector<void *> allocated_copy (NObjects);
+    std::vector<void *> allocated = *(new std::vector<void*>(NObjects));
+    std::vector<void *> allocated_copy = *(new std::vector<void*>(NObjects));
     std::uniform_int_distribution<> dist(MinSize, MaxSize);
 
     intptr_t minAddress = -1;
