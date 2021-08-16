@@ -132,6 +132,7 @@ int main(int argc, char* argv[]) {
   std::cout << "loops = " << Loops << std::endl;
   std::cout << "locality iterations = " << localityIterations << std::endl;
   std::cout << "iterations = " << Iterations << std::endl;
+  #endif
 
   using namespace BloombergLP;
   char* buf = new char[Iterations * ObjectSize];
