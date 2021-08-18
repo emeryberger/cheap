@@ -5,6 +5,9 @@
 
 #include "dllist.h"
 
+#include <cstddef>
+#include <cstdlib>
+
 class SimPool {
 public:
 

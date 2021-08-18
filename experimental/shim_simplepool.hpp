@@ -12,7 +12,6 @@ BSLS_IDENT("$Id: $")
 #error "<bslstl_simplepool.h> header can't be included directly in \
 BSL_OVERRIDES_STD mode"
 #endif
-
 #include <bslscm_version.h>
 
 #include <bslma_allocatortraits.h>
@@ -31,10 +30,10 @@ namespace BloombergLP {
 namespace bslstl {
 
 template <class ALLOCATOR>
-struct SHIM_SimplePool_Type {
-    // For use only by 'bslstl::SimplePool'.  This 'struct' provides a
+struct Shim_SimplePool_Type {
+    // For use only by 'bslstl::ShimSimplePool'.  This 'struct' provides a
     // namespace for a set of types used to define the base-class of a
-    // 'SimplePool'.  The parameterized 'ALLOCATOR' is bound to
+    // 'ShimSimplePool'.  The parameterized 'ALLOCATOR' is bound to
     // 'MaxAlignedType' to ensure the allocated memory is maximally aligned.
 
     typedef typename bsl::allocator_traits<ALLOCATOR>::template
@@ -48,47 +47,48 @@ struct SHIM_SimplePool_Type {
 };
 
 template <class VALUE, class ALLOCATOR>
-class SimplePool : public SHIM_SimplePool_Type<ALLOCATOR>::AllocatorType {
+class ShimSimplePool : public Shim_SimplePool_Type<ALLOCATOR>::AllocatorType {
 private:
 
-  static constexpr int SIZE = 8;
+//   static constexpr int SIZE = 8;
   SimPool * _allocVector { nullptr };
   
     // PRIVATE TYPES
-    typedef SHIM_SimplePool_Type<ALLOCATOR> Types;
+    typedef Shim_SimplePool_Type<ALLOCATOR> Types;
 
   int _blocksFreed { 0 };
-  
+
   public:
     // TYPES
     typedef VALUE ValueType;
         // Alias for the parameterized type 'VALUE'.
 
-  typedef typename Types::AllocatorType AllocatorType;
+    typedef typename Types::AllocatorType AllocatorType;
         // Alias for the allocator type for a
         // 'bsls::AlignmentUtil::MaxAlignedType'.
 
-  typedef typename Types::AllocatorTraits AllocatorTraits;
+    typedef typename Types::AllocatorTraits AllocatorTraits;
         // Alias for the allocator traits for the parameterized
         // 'ALLOCATOR'.
+
     typedef typename AllocatorTraits::size_type size_type;
 
   private:
     // NOT IMPLEMENTED
-    SimplePool& operator=(bslmf::MovableRef<SimplePool>);
-    SimplePool& operator=(const SimplePool&);
-    SimplePool(const SimplePool&);
+    ShimSimplePool& operator=(bslmf::MovableRef<ShimSimplePool>);
+    ShimSimplePool& operator=(const ShimSimplePool&);
+    ShimSimplePool(const ShimSimplePool&);
 
   public:
     // CREATORS
-    explicit SimplePool(const ALLOCATOR& allocator);
+    explicit ShimSimplePool(const ALLOCATOR& allocator);
         // Create a memory pool that returns blocks of contiguous memory of the
         // size of the parameterized 'VALUE' using the specified 'allocator' to
         // supply memory.  The chunk size grows starting with at least
         // 'sizeof(VALUE)', doubling in size up to an implementation defined
         // maximum number of blocks per chunk.
 
-    SimplePool(bslmf::MovableRef<SimplePool> original);
+    ShimSimplePool(bslmf::MovableRef<ShimSimplePool> original);
         // Create a memory pool, adopting all outstanding memory allocations
         // associated with the specified 'original' pool, that returns blocks
         // of contiguous memory of the sizeof the paramterized 'VALUE' using
@@ -97,12 +97,12 @@ private:
         // implementation defined maximum number of blocks per chunk.  Note
         // that 'original' is left in a valid but unspecified state.
 
-    ~SimplePool();
+    ~ShimSimplePool();
         // Destroy this pool, releasing all associated memory back to the
         // underlying allocator.
 
     // MANIPULATORS
-    void adopt(bslmf::MovableRef<SimplePool> pool);
+    void adopt(bslmf::MovableRef<ShimSimplePool> pool);
         // Adopt all outstanding memory allocations associated with the
         // specfied memory 'pool'.  The behavior is undefined unless this pool
         // uses the same allocator as that associated with 'pool'.  The
@@ -134,19 +134,19 @@ private:
     void release();
         // Relinquish all memory currently allocated via this pool object.
 
-    void swap(SimplePool& other);
+    void swap(ShimSimplePool& other);
         // Efficiently exchange the memory blocks of this object with those of
         // the specified 'other' object.  This method provides the no-throw
         // exception-safety guarantee.  The behavior is undefined unless
         // 'allocator() == other.allocator()'.
 
-    void quickSwapRetainAllocators(SimplePool& other);
+    void quickSwapRetainAllocators(ShimSimplePool& other);
         // Efficiently exchange the memory blocks of this object with those of
         // the specified 'other' object.  This method provides the no-throw
         // exception-safety guarantee.  The behavior is undefined unless
         // 'allocator() == other.allocator()'.
 
-    void quickSwapExchangeAllocators(SimplePool& other);
+    void quickSwapExchangeAllocators(ShimSimplePool& other);
         // Efficiently exchange the memory blocks and the allocator of this
         // object with those of the specified 'other' object.  This method
         // provides the no-throw exception-safety guarantee.
@@ -169,7 +169,7 @@ private:
 // CREATORS
 template <class VALUE, class ALLOCATOR>
 inline
-SimplePool<VALUE, ALLOCATOR>::SimplePool(const ALLOCATOR& allocator)
+ShimSimplePool<VALUE, ALLOCATOR>::ShimSimplePool(const ALLOCATOR& allocator)
   : AllocatorType(allocator),
     _allocVector (new SimPool)
 {
@@ -177,17 +177,17 @@ SimplePool<VALUE, ALLOCATOR>::SimplePool(const ALLOCATOR& allocator)
 
 template <class VALUE, class ALLOCATOR>
 inline
-SimplePool<VALUE, ALLOCATOR>::SimplePool(
-                                        bslmf::MovableRef<SimplePool> original)
+ShimSimplePool<VALUE, ALLOCATOR>::ShimSimplePool(
+                                        bslmf::MovableRef<ShimSimplePool> original)
   : AllocatorType(bslmf::MovableRefUtil::access(original).allocator()),
     _allocVector (new SimPool)
 {
-    SimplePool& lvalue = original;
+    ShimSimplePool& lvalue = original;
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-SimplePool<VALUE, ALLOCATOR>::~SimplePool()
+ShimSimplePool<VALUE, ALLOCATOR>::~ShimSimplePool()
 {
     release();
 }
@@ -196,76 +196,81 @@ SimplePool<VALUE, ALLOCATOR>::~SimplePool()
 template <class VALUE, class ALLOCATOR>
 inline
 void
-SimplePool<VALUE, ALLOCATOR>::adopt(bslmf::MovableRef<SimplePool> pool)
+ShimSimplePool<VALUE, ALLOCATOR>::adopt(bslmf::MovableRef<ShimSimplePool> pool)
 {
     BSLS_ASSERT_SAFE(allocator()
                            == bslmf::MovableRefUtil::access(pool).allocator());
 
-    SimplePool& lvalue = pool;
+    ShimSimplePool& lvalue = pool;
     _allocVector = lvalue._allocVector;
     lvalue._allocVector = new SimPool;
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-typename SimplePool<VALUE, ALLOCATOR>::AllocatorType&
-SimplePool<VALUE, ALLOCATOR>::allocator()
+typename ShimSimplePool<VALUE, ALLOCATOR>::AllocatorType&
+ShimSimplePool<VALUE, ALLOCATOR>::allocator()
 {
     return *this;
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-VALUE *SimplePool<VALUE, ALLOCATOR>::allocate()
+VALUE *ShimSimplePool<VALUE, ALLOCATOR>::allocate()
 {
-  _blocksFreed--;
+  if (_blocksFreed > 0)
+  {
+      --_blocksFreed;
+  }
   return (VALUE *) _allocVector->malloc(sizeof(VALUE));
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-void SimplePool<VALUE, ALLOCATOR>::deallocate(void *address)
+void ShimSimplePool<VALUE, ALLOCATOR>::deallocate(void *address)
 {
     BSLS_ASSERT_SAFE(address);
-    _blocksFreed++;
     _allocVector->free(address);
+    ++_blocksFreed;
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-void SimplePool<VALUE, ALLOCATOR>::swap(SimplePool<VALUE, ALLOCATOR>& other)
+void ShimSimplePool<VALUE, ALLOCATOR>::swap(ShimSimplePool<VALUE, ALLOCATOR>& other)
 {
     BSLS_ASSERT_SAFE(allocator() == other.allocator());
 
     std::swap(_allocVector, other._allocVector);
+    std::swap(_blocksFreed, other._blocksFreed);
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-void SimplePool<VALUE, ALLOCATOR>::quickSwapRetainAllocators(
-                                           SimplePool<VALUE, ALLOCATOR>& other)
+void ShimSimplePool<VALUE, ALLOCATOR>::quickSwapRetainAllocators(
+                                           ShimSimplePool<VALUE, ALLOCATOR>& other)
 {
     swap(other);
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-void SimplePool<VALUE, ALLOCATOR>::quickSwapExchangeAllocators(
-                                           SimplePool<VALUE, ALLOCATOR>& other)
+void ShimSimplePool<VALUE, ALLOCATOR>::quickSwapExchangeAllocators(
+                                           ShimSimplePool<VALUE, ALLOCATOR>& other)
 {
     using std::swap;
     swap(this->allocator(), other.allocator());
     swap(_allocVector, other._allocVector);
+    swap(_blocksFreed, other._blocksFreed);
 }
 
 template <class VALUE, class ALLOCATOR>
-void SimplePool<VALUE, ALLOCATOR>::reserve(size_type numBlocks)
+void ShimSimplePool<VALUE, ALLOCATOR>::reserve(size_type numBlocks)
 {
   _blocksFreed += numBlocks;
 }
 
 template <class VALUE, class ALLOCATOR>
-void SimplePool<VALUE, ALLOCATOR>::release()
+void ShimSimplePool<VALUE, ALLOCATOR>::release()
 {
 #ifdef BSLS_PLATFORM_HAS_PRAGMA_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
@@ -281,17 +286,17 @@ void SimplePool<VALUE, ALLOCATOR>::release()
 // ACCESSORS
 template <class VALUE, class ALLOCATOR>
 inline
-const typename SimplePool<VALUE, ALLOCATOR>::AllocatorType&
-SimplePool<VALUE, ALLOCATOR>::allocator() const
+const typename ShimSimplePool<VALUE, ALLOCATOR>::AllocatorType&
+ShimSimplePool<VALUE, ALLOCATOR>::allocator() const
 {
     return *this;
 }
 
 template <class VALUE, class ALLOCATOR>
 inline
-bool SimplePool<VALUE, ALLOCATOR>::hasFreeBlocks() const
+bool ShimSimplePool<VALUE, ALLOCATOR>::hasFreeBlocks() const
 {
-  return (_blocksFreed > 0) || !_allocVector->isEmpty();
+  return _blocksFreed > 0 ;  // || !_allocVector->isEmpty();
 }
 
 }  // close package namespace

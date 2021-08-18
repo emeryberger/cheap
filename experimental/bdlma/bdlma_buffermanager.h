@@ -1,13 +1,13 @@
 // bdlma_buffermanager.h                                              -*-C++-*-
 
-#include "/Users/emery/cheap/experimental/bde-config.h"
+#include "cheap/experimental/bde-config.h"
 
 #ifndef BDE_USE_ORIGINAL_BUFFERMANAGER
 #error "Missing definition."
 #endif
 
 #if !BDE_USE_ORIGINAL_BUFFERMANAGER
-#include "/Users/emery/cheap/experimental/shim_buffermanager.hpp"
+#include "cheap/experimental/shim_buffermanager.hpp"
 #endif
 
 // ----------------------------------------------------------------------------
@@ -639,9 +639,10 @@ bool BufferManager_REAL::hasSufficientCapacity(bsls::Types::size_type size) cons
 }
 
 #if BDE_USE_ORIGINAL_BUFFERMANAGER
-typedef BufferManager_REAL BufferManager;
+#warning "USING ORIGINAL BUFFER MANAGER"
+using BufferManager = BufferManager_REAL;
 #else
-typedef ShimBufferManager BufferManager;
+using BufferManager = ShimBufferManager;
 #endif
 
 }  // close package namespace

@@ -57,30 +57,30 @@ class ShimAllocator : public bslma::ManagedAllocator {
   typedef std::false_type is_always_equal;
 
   ShimAllocator(char *,
-		bsls::Types::size_type, //  size,
-		bslma::Allocator * basicAllocator = 0)
+    bsls::Types::size_type, //  size,
+    bslma::Allocator * basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
   ShimAllocator(char                        *, // buffer,
-		bsls::Types::size_type       , // size,
-		bsls::BlockGrowth::Strategy  , // growthStrategy,
-		bslma::Allocator            *basicAllocator = 0)
+    bsls::Types::size_type       , // size,
+    bsls::BlockGrowth::Strategy  , // growthStrategy,
+    bslma::Allocator            *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
   ShimAllocator(char                      *, // buffer,
-		bsls::Types::size_type     , // size,
-		bsls::Alignment::Strategy  , // alignmentStrategy,
-		bslma::Allocator          *basicAllocator = 0)
+    bsls::Types::size_type     , // size,
+    bsls::Alignment::Strategy  , // alignmentStrategy,
+    bslma::Allocator          *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
   
   ShimAllocator(char                        *, // buffer,
-		bsls::Types::size_type       , // size,
-		bsls::BlockGrowth::Strategy  , // growthStrategy,
-		bsls::Alignment::Strategy    , // alignmentStrategy,
-		bslma::Allocator            *basicAllocator = 0)
+    bsls::Types::size_type       , // size,
+    bsls::BlockGrowth::Strategy  , // growthStrategy,
+    bsls::Alignment::Strategy    , // alignmentStrategy,
+    bslma::Allocator            *basicAllocator = 0)
     : ShimAllocator(basicAllocator)
   {}
 
@@ -145,22 +145,22 @@ class ShimAllocator : public bslma::ManagedAllocator {
   }
 
   inline void * allocateAndExpand(int * sz,
-				  int) //  maxNumBytes)
+          int) //  maxNumBytes)
   {
     // Undefined behavior if align(sz) > maxNumBytes
     return allocateAndExpand(sz);
   }
 
   inline int expand(void * address,
-		    int) //  originalNumBytes)
+        int /*originalNumBytes*/)
   {
     // Return the max amount already available.
     return (int) SimRegion::getSize(address); // align(originalNumBytes);
   }
 
   inline int expand(void * address,
-		    int originalNumBytes,
-		    int) //  maxNumBytes)
+        int originalNumBytes,
+        int /*maxNumBytes*/)
   {
     return expand(address, originalNumBytes);
   }
@@ -169,8 +169,8 @@ class ShimAllocator : public bslma::ManagedAllocator {
   }
 
   inline int truncate(void * address,
-		      int, //  originalNumBytes,
-		      int) //  newNumBytes)
+          int /*originalNumBytes*/,
+          int /*newNumBytes*/)
   {
     // Do nothing with the object's size - just return the original size.
     return (int) SimRegion::getSize(address);

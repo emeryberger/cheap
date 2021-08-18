@@ -50,6 +50,8 @@ public:
   }
 
   /// Get the head of the list.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wcast-qual"
   inline Entry * get() {
     const Entry * e = head.next;
     if (e == &head) {

@@ -7,6 +7,8 @@
 #define REPORT_STATS 0
 
 #include <cstdlib>
+#include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 
 #include <bsls_alignment.h>
@@ -49,7 +51,7 @@ class ShimBufferManager {
     unsigned char           d_alignmentOrMask;   // a mask used during the
                                                  // alignment calculation
 
-  static constexpr int SIZE = 8; // FIXME NOT CURRENTLY USED
+//   static constexpr int SIZE = 8; // FIXME NOT CURRENTLY USED
   SimRegion _allocVector;
 #if COLLECT_STATS
   size_t _allocations;  // total number of allocations
@@ -114,7 +116,10 @@ class ShimBufferManager {
         // effect as the 'deleteObjectRaw' method (since no deallocation is
         // involved), and exists for consistency with a pool interface.
 
-    bsls::Types::size_type expand(void *address, bsls::Types::size_type size);
+    bsls::Types::size_type expand(void *address, bsls::Types::size_type size)
+    {
+        return size;
+    }
         // Increase the amount of memory allocated at the specified 'address'
         // from the original 'size' (in bytes) to also include the maximum
         // amount remaining in the buffer.  Return the amount of memory
@@ -151,9 +156,12 @@ class ShimBufferManager {
         // of this object with no effect on the outstanding allocated memory
         // blocks.
 
-    bsls::Types::size_type truncate(void                   *address,
+    bsls::Types::size_type truncate(void                   */*address*/,
                                     bsls::Types::size_type  originalSize,
-                                    bsls::Types::size_type  newSize);
+                                    bsls::Types::size_type  /*newSize*/)
+    {
+        return originalSize;
+    }
         // Reduce the amount of memory allocated at the specified 'address' of
         // the specified 'originalSize' (in bytes) to the specified 'newSize'
         // (in bytes).  Return 'newSize' after truncating, or 'originalSize' if
@@ -304,7 +312,7 @@ void ShimBufferManager::deleteObjectRaw(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	_allocVector.deallocate(object);
+	_allocVector.deallocate(reinterpret_cast<void*>(const_cast<TYPE*>(object)));
     }
 }
 
@@ -408,19 +416,3 @@ bool ShimBufferManager::hasSufficientCapacity(bsls::Types::size_type size) const
 }  // close enterprise namespace
 
 #endif
-
-// ----------------------------------------------------------------------------
-// Copyright 2016 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------

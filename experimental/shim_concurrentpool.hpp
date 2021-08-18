@@ -8,246 +8,6 @@ BSLS_IDENT("$Id: $")
 
 #include "simpool.hpp"
 
-//@PURPOSE: Provide thread-safe allocation of memory blocks of uniform size.
-//
-//@CLASSES:
-//   bdlma::ConcurrentPool: thread-safe memory manager that allocates blocks
-//
-//@SEE_ALSO: bdema_pool
-//
-//@DESCRIPTION: This component implements a memory pool,
-// 'bdlma::ConcurrentPool', that allocates and manages memory blocks of some
-// uniform size specified at construction.  A 'bdlma::ConcurrentPool' object
-// maintains an internal linked list of free memory blocks, and dispenses one
-// block for each 'allocate' method invocation.  When a memory block is
-// deallocated, it is returned to the free list for potential reuse.
-//
-// Whenever the linked list of free memory blocks is depleted, the
-// 'bdlma::ConcurrentPool' replenishes the list by first allocating a large,
-// contiguous "chunk" of memory, then splitting the chunk into multiple memory
-// blocks.  A chunk and its constituent memory blocks can be depicted visually:
-//..
-//     +-----+--- memory blocks of uniform size
-//     |     |
-//   ----- ----- ------------
-//  |     |     |     ...    |
-//   =====^=====^============
-//
-//   \___________ __________/
-//               V
-//           a "chunk"
-//..
-// Note that the size of the allocated chunk is determined by both the growth
-// strategy and maximum blocks per chunk, either of which can be optionally
-// specified at construction (see the "Configuration at Construction" section).
-//
-///Configuration at Construction
-///-----------------------------
-// When creating a 'bdlma::ConcurrentPool', clients must specify the specific
-// block size managed and dispensed by the pool.  Furthermore, clients can
-// optionally configure:
-//
-//: 1 GROWTH STRATEGY -- geometrically growing chunk size starting from 1 (in
-//:   terms of the number of memory blocks per chunk), or fixed chunk size.  If
-//:   the growth strategy is not specified, geometric growth is used.
-//: 2 MAX BLOCKS PER CHUNK -- the maximum number of memory blocks within a
-//:   chunk.  If the maximum blocks per chunk is not specified, an
-//:   implementation-defined default value is used.
-//: 3 BASIC ALLOCATOR -- the allocator used to supply memory to replenish the
-//:   internal pool.  If not specified, the currently installed default
-//:   allocator (see 'bslma_default') is used.
-//
-// For example, if geometric growth is used and the maximum blocks per chunk is
-// specified as 30, the chunk size grows geometrically, starting from 1, until
-// the specified maximum blocks per chunk, as follows:
-//..
-//  1, 2, 4, 8, 16, 30, 30, 30 ...
-//..
-// If constant growth is used, the chunk size is always the specified maximum
-// blocks per chunk (or an implementation-defined value if the maximum blocks
-// per chunk is not specified), for example:
-//..
-//  30, 30, 30 ...
-//..
-// A default-constructed pool has an initial chunk size of 1 (i.e., the number
-// of memory blocks of a given size allocated at once to replenish a pool's
-// memory), and the pool's chunk size grows geometrically until it reaches an
-// implementation-defined maximum, at which it is capped.  Finally, unless
-// otherwise specified, all memory comes from the allocator that was the
-// currently installed default allocator at the time the
-// 'bdlma::ConcurrentPool' was created.
-//
-///Overloaded Global Operator 'new'
-///--------------------------------
-// This component overloads the global 'operator new' to allow convenient
-// syntax for the construction of objects using a 'bdlma::ConcurrentPool'.  The
-// 'new' operator supplied in this component takes a 'bdlma::ConcurrentPool'
-// argument indicating the source of the memory.  Consider the following use of
-// standard placement 'new' syntax (supplied by 'bsl_new.h') along with a
-// 'bdlma::ConcurrentPool' to allocate an object of type 'T'.  Note that the
-// size of 'T' must be the same or smaller than the 'blockSize' with which the
-// pool is constructed:
-//..
-//  void f(bdlma::ConcurrentPool *pool)
-//  {
-//      assert(pool->blockSize() >= sizeof(T));
-//
-//      T *t = new (pool->allocate()) T(...);
-//
-//      // ...
-//  }
-//..
-// This usage style is not exception-safe.  If the constructor of 'T' throws an
-// exception, 'pool->deallocate' is never called.
-//
-// Supplying an overloaded global 'operator new':
-//..
-//  ::operator new(bsl::size_t size, bdlma::ConcurrentPool& pool);
-//..
-// allows for the following cleaner usage, which does not require the size
-// calculation and guarantees that 'pool->deallocate' *is* called in case of an
-// exception:
-//..
-//  void f(bdlma::ConcurrentPool *pool)
-//  {
-//      assert(pool->blockSize() >= sizeof(T));
-//
-//      T *t = new (*pool) T(...);
-//
-//      // ...
-//..
-// Also note that the analogous version of operator 'delete' should *not* be
-// called directly.  Instead, this component provides a static template member
-// function 'deleteObject', parameterized on 'TYPE':
-//..
-//      pool->deleteObject(t);
-//  }
-//..
-// The above 'deleteObject' call is equivalent to performing the following:
-//..
-//  t->~TYPE();
-//  pool->deallocate(t);
-//..
-// An overloaded operator 'delete' is supplied solely to allow the compiler to
-// arrange for it to be called in case of an exception.
-//
-///Usage
-///-----
-// A 'bdlma::ConcurrentPool' can be used by node-based containers (such as
-// lists, trees, and hash tables that hold multiple elements of uniform size)
-// for efficient memory allocation of new elements.  The following container
-// class, 'my_PooledArray', stores templatized values "out-of-place" as nodes
-// in a 'vector' of pointers.  Since the size of each node is fixed and known
-// *a priori*, the class uses a 'bdlma::ConcurrentPool' to allocate memory for
-// the nodes to improve memory allocation efficiency:
-//..
-//  // my_poolarray.h
-//
-//  template <class T>
-//  class my_PooledArray {
-//      // This class implements a container that stores 'double' values
-//      // out-of-place.
-//
-//      // DATA
-//      bsl::vector<T *>      d_array_p;  // array of pooled elements
-//      bdlma::ConcurrentPool d_pool;     // memory manager for array elements
-//
-//    private:
-//      // Not implemented:
-//      my_PooledArray(const my_PooledArray&);
-//
-//    public:
-//      // CREATORS
-//      explicit my_PooledArray(bslma::Allocator *basicAllocator = 0);
-//          // Create a pooled array that stores the parameterized values
-//          // "out-of-place".  Optionally specify a 'basicAllocator' used to
-//          // supply memory.  If 'basicAllocator' is 0, the currently
-//          // installed default allocator is used.
-//
-//      ~my_PooledArray();
-//          // Destroy this array and all elements held by it.
-//
-//      // MANIPULATORS
-//      void append(const T &value);
-//          // Append the specified 'value' to this array.
-//
-//      void removeAll();
-//          // Remove all elements from this array.
-//
-//      // ACCESSORS
-//      int length() const;
-//          // Return the number of elements in this array.
-//
-//      const T& operator[](int index) const;
-//          // Return a reference to the non-modifiable value at the specified
-//          // 'index' in this array.  The behavior is undefined unless
-//          // '0 <= index < length()'.
-//  };
-//..
-// In the 'removeAll' method, all elements are deallocated by invoking the
-// pool's 'release' method.  This technique implies significant performance
-// gain when the array contains many elements:
-//..
-//  // MANIPULATORS
-//  template <class T>
-//  inline
-//  void my_PooledArray<T>::removeAll()
-//  {
-//      d_array_p.clear();
-//      d_pool.release();
-//  }
-//
-//  // ACCESSORS
-//  template <class T>
-//  inline
-//  int my_PooledArray<T>::length() const
-//  {
-//      return static_cast<int>(d_array_p.size());
-//  }
-//
-//  template <class T>
-//  inline
-//  const T& my_PooledArray<T>::operator[](int index) const
-//  {
-//      assert(0 <= index);
-//      assert(index < length());
-//
-//      return *d_array_p[index];
-//  }
-//..
-// Note that the growth strategy and maximum chunk size of the pool is left as
-// the default value:
-//..
-//  // my_poolarray.cpp
-//
-//  // CREATORS
-//  template <class T>
-//  my_PooledArray<T>::my_PooledArray(bslma::Allocator *basicAllocator)
-//  : d_array_p(basicAllocator)
-//  , d_pool(sizeof(T), basicAllocator)
-//  {
-//  }
-//..
-// Since all memory is managed by 'd_pool', we do not have to explicitly invoke
-// 'deleteObject' to reclaim outstanding memory.  The destructor of the pool
-// will automatically deallocate all array elements:
-//..
-//  template <class T>
-//  my_PooledArray<T>::~my_PooledArray()
-//  {
-//      // Elements are automatically deallocated when 'd_pool' is destroyed.
-//  }
-//..
-// Note that the overloaded "placement" 'new' is used to allocate new nodes:
-//..
-//  template <class T>
-//  void my_PooledArray<T>::append(const T& value)
-//  {
-//      T *tmp = new (d_pool) T(value);
-//      d_array_p.push_back(tmp);
-//  }
-//..
-
 #include <bdlscm_version.h>
 
 #include <bslmt_mutex.h>
@@ -271,7 +31,7 @@ namespace BloombergLP {
 namespace bdlma {
 
                            // ====================
-                           // class ConcurrentPool
+                           // class ShimConcurrentPool
                            // ====================
 
 class ShimConcurrentPool {
@@ -330,11 +90,6 @@ class ShimConcurrentPool {
   SimPool pool;
   
     // PRIVATE MANIPULATORS
-    void replenish();
-        // Dynamically allocate a new chunk using the pool's underlying growth
-        // strategy, and use the chunk to replenish the free memory list of
-        // this pool.  The behavior is undefined unless the calling thread has
-        // a lock on 'd_mutex'.
 
   private:
     // NOT IMPLEMENTED
@@ -536,15 +291,16 @@ template<class TYPE>
 inline
 void ShimConcurrentPool::deleteObject(const TYPE *object)
 {
-    if (0 != object) {
+    if (nullptr != object)
+    {
 #ifndef BSLS_PLATFORM_CMP_SUN
         object->~TYPE();
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-	d_mutex.lock();
-	pool.free(const_cast<TYPE *>(object));
-	d_mutex.unlock();
+        d_mutex.lock();
+        pool.free(const_cast<TYPE *>(object));
+        d_mutex.unlock();
     }
 }
 
@@ -552,9 +308,20 @@ template<class TYPE>
 inline
 void ShimConcurrentPool::deleteObjectRaw(const TYPE *object)
 {
-  d_mutex.lock();
-  deleteObjectRaw(object);
-  d_mutex.unlock();
+    if (nullptr != object)
+    {
+        void *address = const_cast<TYPE *>(object);
+
+#if defined(BSLS_PLATFORM_CMP_SUN)
+        const_cast<TYPE *>(object)->~TYPE();
+#else
+        object->~TYPE();
+#endif
+
+        d_mutex.lock();
+        allocator->deallocate(address);
+        d_mutex.unlock();
+    }
 }
 
 inline
@@ -582,6 +349,7 @@ bslma::Allocator *ShimConcurrentPool::allocator() const
 
 }  // close package namespace
 }  // close enterprise namespace
+
 
 // FREE OPERATORS
 inline
@@ -613,20 +381,5 @@ void operator delete(void *address, BloombergLP::bdlma::ShimConcurrentPool& pool
     pool.unlock();
 }
 
-// ----------------------------------------------------------------------------
-// Copyright 2016 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------
 
 #endif
