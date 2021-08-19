@@ -1,13 +1,13 @@
 // bslstl_simplepool.h                                                -*-C++-*-
 
-#include "/Users/emery/cheap/experimental/bde-config.h"
+#include "cheap/experimental/bde-config.h"
 
 #ifndef BDE_USE_ORIGINAL_SIMPLEPOOL
 #error "Missing definition."
 #endif
 
 #if !BDE_USE_ORIGINAL_SIMPLEPOOL
-#include "/Users/emery/cheap/experimental/shim_simplepool.hpp"
+#include "cheap/experimental/shim_simplepool.hpp"
 #endif
 
 #ifndef INCLUDED_BSLSTL_SIMPLEPOOL
@@ -633,9 +633,11 @@ bool SimplePool_REAL<VALUE, ALLOCATOR>::hasFreeBlocks() const
 }
 
 #if BDE_USE_ORIGINAL_SIMPLEPOOL
-typedef SimplePool_REAL SimplePool;
+template <class VALUE, class ALLOCATOR>
+using SimplePool = SimplePool_REAL<VALUE, ALLOCATOR>;
 #else
-typedef ShimSimplePool SimplePool;
+template <class VALUE, class ALLOCATOR>
+using SimplePool = ShimSimplePool<VALUE, ALLOCATOR>;
 #endif
 
 }  // close package namespace

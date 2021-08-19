@@ -1,4 +1,4 @@
-#include "/Users/emery/cheap/experimental/bde-config.h"
+#include "cheap/experimental/bde-config.h"
 
 #ifndef BDE_USE_ORIGINAL_BUFFEREDSEQUENTIALALLOCATOR
 #error "Missing definition."
