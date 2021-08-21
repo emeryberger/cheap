@@ -72,7 +72,7 @@ class ShimMultipool {
     ShimMultipool(bslma::Allocator *basicAllocator = 0)
     : pool()
     , d_numPools(10)
-    , d_maxBlockSize(8 >> (10 - 1))
+    , d_maxBlockSize(8 << (10 - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
 
     {}
@@ -80,7 +80,7 @@ class ShimMultipool {
     ShimMultipool(int numPools, bslma::Allocator *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     explicit
@@ -88,7 +88,7 @@ class ShimMultipool {
               bslma::Allocator            *basicAllocator = 0)
     : pool()
     , d_numPools(10)
-    , d_maxBlockSize(8 >> (10 - 1))
+    , d_maxBlockSize(8 << (10 - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     ShimMultipool(int                          numPools,
@@ -96,7 +96,7 @@ class ShimMultipool {
               bslma::Allocator            *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     ShimMultipool(int                          numPools,
@@ -105,7 +105,7 @@ class ShimMultipool {
               bslma::Allocator            *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
         // Create a multipool memory manager.  Optionally specify 'numPools',
@@ -144,7 +144,7 @@ class ShimMultipool {
               bslma::Allocator                  *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     ShimMultipool(int                                numPools,
@@ -153,7 +153,7 @@ class ShimMultipool {
               bslma::Allocator                  *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     ShimMultipool(int                          numPools,
@@ -162,7 +162,7 @@ class ShimMultipool {
               bslma::Allocator            *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
     ShimMultipool(int                                numPools,
@@ -171,7 +171,7 @@ class ShimMultipool {
               bslma::Allocator                  *basicAllocator = 0)
     : pool()
     , d_numPools(numPools)
-    , d_maxBlockSize(8 >> (numPools - 1))
+    , d_maxBlockSize(8 << (numPools - 1))
     , d_allocator_p(bslma::Default::allocator(basicAllocator))
     {}
         // Create a multipool memory manager having the specified 'numPools',
