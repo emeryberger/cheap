@@ -261,16 +261,10 @@ class ShimMultipool {
         // 'size <= maxPooledBlockSize()' and '0 <= numBlocks'.
 
     // ACCESSORS
-    int numPools() const
-    {
-        return 1;
-    }
+    int numPools() const;
         // Return the number of pools managed by this multipool object.
 
-    bsls::Types::size_type maxPooledBlockSize() const
-    {
-        return 8;
-    }
+    bsls::Types::size_type maxPooledBlockSize() const;
         // Return the maximum size of memory blocks that are pooled by this
         // multipool object.  Note that the maximum value is defined as:
         //..
@@ -281,10 +275,7 @@ class ShimMultipool {
 
                                   // Aspects
 
-    bslma::Allocator *allocator() const
-    {
-        return d_allocator_p;
-    }
+    bslma::Allocator *allocator() const;
         // Return the allocator used by this object to allocate memory.  Note
         // that this allocator can not be used to deallocate memory
         // allocated through this pool.
@@ -342,7 +333,7 @@ int ShimMultipool::numPools() const
 inline
 bsls::Types::size_type ShimMultipool::maxPooledBlockSize() const
 {
-    return 8 << (numPools - 1);
+    return 8 << (d_numPools - 1);
 }
 
 // Aspects
