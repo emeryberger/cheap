@@ -319,7 +319,7 @@ void ShimConcurrentPool::deleteObjectRaw(const TYPE *object)
 #endif
 
         d_mutex.lock();
-        allocator->deallocate(address);
+        pool.free(const_cast<TYPE *>(object));
         d_mutex.unlock();
     }
 }

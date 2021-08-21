@@ -512,14 +512,6 @@ void operator delete(void *address, BloombergLP::bdlma::ConcurrentPool_REAL& poo
 
 namespace BloombergLP {
 namespace bdlma {
-
-#if BDE_USE_ORIGINAL_CONCURRENTPOOL
-#warning "USING ORIGINAL CONCURRENT POOL"
-using ConcurrentPool = ConcurrentPool_REAL;
-#else
-using ConcurrentPool = ShimConcurrentPool;
-#endif
-  
                            // --------------------
                            // class ConcurrentPool_REAL
                            // --------------------
@@ -567,6 +559,7 @@ bslma::Allocator *ConcurrentPool_REAL::allocator() const
 #warning "USING ORIGINAL CONCURRENT POOL"
 using ConcurrentPool = ConcurrentPool_REAL;
 #else
+#warning "USING SHIMMED CONCURRENT POOL"
 using ConcurrentPool = ShimConcurrentPool;
 #endif
 
