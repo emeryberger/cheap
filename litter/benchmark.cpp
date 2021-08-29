@@ -20,7 +20,7 @@ int main() {
       memset(Pointer, 13, OBJECT_SIZE);
       Objects[j] = Pointer;
     }
-    
+
     volatile char Counter;
     for (int i = 0; i < LOCALITY_ITERATIONS; i++) {
       for (int j = 0; j < ITERATIONS; j++) {
@@ -31,7 +31,7 @@ int main() {
     }
 
     for (int i = 0; i < ITERATIONS; ++i) {
-        free(Objects[i]);
+      free(Objects[i]);
     }
   }
 
