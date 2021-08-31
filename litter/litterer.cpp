@@ -41,10 +41,7 @@ public:
       return;
     }
 
-    long long int NAllocations = 0;
-    for (int i = 0; i < Data["Bins"].size(); ++i) {
-      NAllocations += Data["Bins"][i].get<int>();
-    }
+    long long int NAllocations = Data["NAllocations"].get<long long int>();
     long long int NAllocationsLitter = NAllocations * LITTER_MULTIPLIER;
 
     std::vector<std::uniform_int_distribution<size_t>> Distributions =

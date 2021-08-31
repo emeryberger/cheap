@@ -1,6 +1,7 @@
 #include <atomic>
 #include <dlfcn.h>
 #include <fstream>
+#include <iostream>
 #include <vector>
 
 #include "constants.hpp"
@@ -9,6 +10,8 @@ static std::atomic_bool Ready{false};
 static thread_local int Busy{0};
 
 static std::vector<std::atomic_int> Bins(sizeof(intptr_t) * 8);
+static std::atomic_int64_t NAllocations{0};
+static std::atomic<double> Average{0};
 
 class Initialization {
 public:
@@ -29,7 +32,7 @@ public:
     for (int i = 1; i <= MaxI; ++i) {
       OutputFile << ", " << Bins[i];
     }
-    OutputFile << "] }" << std::endl;
+    OutputFile << "], \"NAllocations\": " << NAllocations << ", \"Average\": " << Average << " }" << std::endl;
   }
 };
 
@@ -49,6 +52,14 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
         break;
       }
     }
+
+    // This technically could result in some inaccuracies due to concurrency, but these should resolve themselves with a
+    // high enough number of allocations.
+    double AverageCopy = Average;
+    while (Average.compare_exchange_weak(AverageCopy, AverageCopy + (Size - AverageCopy) / (NAllocations + 1))) {
+      AverageCopy = Average;
+    }
+    NAllocations++;
 
     --Busy;
   }
