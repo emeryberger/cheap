@@ -53,12 +53,7 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
       }
     }
 
-    // This technically could result in some inaccuracies due to concurrency, but these should resolve themselves with a
-    // high enough number of allocations.
-    double AverageCopy = Average;
-    while (Average.compare_exchange_weak(AverageCopy, AverageCopy + (Size - AverageCopy) / (NAllocations + 1))) {
-      AverageCopy = Average;
-    }
+    Average = Average + (Size - Average) / (NAllocations + 1);
     NAllocations++;
 
     --Busy;

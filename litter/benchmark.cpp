@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 
+#include "DoNotOptimize.hpp"
+
 #define LOOPS 10
 #define ITERATIONS 200000
 #define LOCALITY_ITERATIONS 500
@@ -21,14 +23,16 @@ int main() {
       Objects[j] = Pointer;
     }
 
-    volatile char Counter;
+    char Counter = 0;
     for (int i = 0; i < LOCALITY_ITERATIONS; i++) {
       for (int j = 0; j < ITERATIONS; j++) {
-        volatile char Buffer[OBJECT_SIZE];
+        char Buffer[OBJECT_SIZE];
         memcpy((void*) Buffer, Objects[j], BYTES_TO_READ);
         Counter += Buffer[OBJECT_SIZE - 1];
+        DoNotOptimize(Buffer);
       }
     }
+    DoNotOptimize(Counter);
 
     for (int i = 0; i < ITERATIONS; ++i) {
       free(Objects[i]);

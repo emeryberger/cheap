@@ -5,7 +5,7 @@ LDFLAGS := -fPIC -shared
 BUILD_DIRECTORY := build
 
 .PHONY: all
-all: detector litterer
+all: detector litterer benchmark
 
 .PHONY: detector
 detector: detector.cpp
@@ -18,3 +18,8 @@ litterer: litterer.cpp
 	mkdir -p $(BUILD_DIRECTORY)
 	$(CXX) $(CXXFLAGS) $(USER_FLAGS) -c -o $(BUILD_DIRECTORY)/litterer.o litterer.cpp
 	$(CXX) $(LDFLAGS) -o $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/litterer.o
+
+.PHONY: benchmark
+benchmark:
+	mkdir -p $(BUILD_DIRECTORY)
+	$(CXX) -std=c++20 -g -Wall -O3 -o $(BUILD_DIRECTORY)/benchmark benchmark.cpp
