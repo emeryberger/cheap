@@ -22,4 +22,4 @@ litterer: litterer.cpp
 .PHONY: benchmark
 benchmark:
 	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) -std=c++20 -g -Wall -O3 -o $(BUILD_DIRECTORY)/benchmark benchmark.cpp
+	$(CXX) -std=c++20 -g -Wall -O3 -fno-omit-frame-pointer -o $(BUILD_DIRECTORY)/benchmark benchmark.cpp
