@@ -1,5 +1,5 @@
 ifndef PIN_ROOT
-	$(error Please specify the PIN_ROOT environment variable)
+$(error Please specify the PIN_ROOT environment variable)
 endif
 
 CONFIG_ROOT := $(PIN_ROOT)/source/tools/Config
