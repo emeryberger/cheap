@@ -22,17 +22,27 @@ static std::vector<unsigned long long int> Bins(sizeof(intptr_t) * 8);
 
 // NO_LOCKS is only (maybe) safe to enable in strictly single-threaded programs.
 #ifndef NO_LOCKS
-static PIN_MUTEX Lock;
+static PIN_RWMUTEX Lock;
 
 // Written for convenience. Easy to abuse so be careful.
-class PIN_MutexGuard {
+class PIN_RWMutexReadGuard {
 public:
-  PIN_MutexGuard(PIN_MUTEX* Lock) : _Lock(Lock) { PIN_MutexLock(_Lock); }
+  PIN_RWMutexReadGuard(PIN_RWMUTEX* Lock) : _Lock(Lock) { PIN_RWMutexReadLock(_Lock); }
 
-  ~PIN_MutexGuard() { PIN_MutexUnlock(_Lock); }
+  ~PIN_RWMutexReadGuard() { PIN_RWMutexUnlock(_Lock); }
 
 private:
-  PIN_MUTEX* _Lock;
+  PIN_RWMUTEX* _Lock;
+};
+
+class PIN_RWMutexWriteGuard {
+public:
+  PIN_RWMutexWriteGuard(PIN_RWMUTEX* Lock) : _Lock(Lock) { PIN_RWMutexWriteLock(_Lock); }
+
+  ~PIN_RWMutexWriteGuard() { PIN_RWMutexUnlock(_Lock); }
+
+private:
+  PIN_RWMUTEX* _Lock;
 };
 #endif
 
@@ -65,21 +75,21 @@ VOID OnMallocAfter(THREADID ThreadId, ADDRINT Pointer) {
   CacheData CData{BinIndex};
 
 #ifndef NO_LOCKS
-  PIN_MutexGuard _(&Lock);
+  PIN_RWMutexWriteGuard _(&Lock);
 #endif
   Cache[Pointer] = CData;
 }
 
 VOID OnFree(THREADID ThreadId, const CONTEXT* Context, ADDRINT Pointer) {
 #ifndef NO_LOCKS
-  PIN_MutexGuard _(&Lock);
+  PIN_RWMutexWriteGuard _(&Lock);
 #endif
   Cache.erase(Pointer);
 }
 
 VOID OnMemoryRead(THREADID ThreadId, ADDRINT Pointer, UINT32 Size) {
 #ifndef NO_LOCKS
-  PIN_MutexGuard _(&Lock);
+  PIN_RWMutexReadGuard _(&Lock);
 #endif
 
   if (Cache.find(Pointer) != Cache.end()) {
@@ -93,7 +103,7 @@ VOID OnMemoryWrite(THREADID ThreadId, ADDRINT Pointer, UINT32 Size) {
 
 VOID OnProgramEnd(INT32 Code, VOID* _) {
 #ifndef NO_LOCKS
-  PIN_MutexFini(&Lock);
+  PIN_RWMutexFini(&Lock);
 #endif
 
   size_t MaxI = 0;
@@ -159,7 +169,7 @@ int main(int argc, char* argv[]) {
   OutputFile.open(KnobOutputFile.Value().c_str());
 
 #ifndef NO_LOCKS
-  if (!PIN_MutexInit(&Lock)) {
+  if (!PIN_RWMutexInit(&Lock)) {
     std::cerr << "Failed to initialize lock..." << std::endl;
     PIN_ExitProcess(1);
   }
