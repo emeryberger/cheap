@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Sleeping for " << SleepTimer << " seconds before starting benchmark (PID: " << getpid() << ")"
               << std::endl;
     sleep(SleepTimer);
-    std::cout << "Starting now."
+    std::cout << "Starting now.";
   }
 
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
