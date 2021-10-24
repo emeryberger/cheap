@@ -24,7 +24,7 @@ public:
     return (sz + alignof(std::max_align_t) - 1) & ~(alignof(std::max_align_t) - 1);
   }
 
-  SimRegion(unsigned int SIZE = 0)
+  SimRegion(unsigned int = 0) // ignore argument - just here for compatibility now
   {
   }
   
