@@ -25,6 +25,7 @@ int main(int argc, char* argv[]) {
     ("shuffle","Shuffle ('litter') randomly before starting")
     ("page-litter-v1","(V1) Adversary case. If set, overrides all other litter options.")
     ("page-litter-v2","(V2) Adversary case. If set, overrides all other litter options.")
+    ("sleep-timer", "Add a sleep timer between littering and benchmark, which could be used with perf.", cxxopts::value<int>())
     ("seed","Use this seed for shuffling", cxxopts::value<size_t>())
     ("buffer","Use the actual buffer implementation")
     ("shim","Use a shim buffer implementation")
@@ -159,7 +160,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Sleeping for " << SleepTimer << " seconds before starting benchmark (PID: " << getpid() << ")"
               << std::endl;
     sleep(SleepTimer);
-    std::cout << "Starting now.";
+    std::cout << "Starting now." << std::endl;
   }
 
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
