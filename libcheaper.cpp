@@ -2,7 +2,6 @@
 
 #include <execinfo.h>
 #include <iostream>
-#include <random>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,19 +55,6 @@ CustomHeapType& getTheCustomHeap() {
 
 static std::atomic<long> samples{0};
 static std::atomic<int> busy{0};
-
-// Rate at which allocations are sampled. Since we are using a geometric distribution, 1 / sampling_rate will equal the
-// average amount of bytes between each allocation.
-// If set to 1, every allocation will be sampled.
-static double sampling_rate = 1.0 / 64;
-
-size_t getNextSampleCount() {
-  // TODO We should maybe pass a seed to the generator below. Maybe a combination of time and thread id?
-  static thread_local std::default_random_engine generator;
-  static thread_local std::geometric_distribution<size_t> distribution(sampling_rate);
-  return distribution(generator);
-}
-
 #define USE_LOCKS 0
 
 #if USE_LOCKS
@@ -98,7 +84,7 @@ public:
 
     isReadyToSample = true;
   }
-  
+
   ~Initialization() {
     isReadyToSample = false;
 
@@ -156,19 +142,14 @@ extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
   size_t real_sz = getTheCustomHeap().getSize(ptr);
   busy--;
 
-  sampling_count -= real_sz;
+  auto tid = gettid();
+  lockme();
+  printProlog('M');
+  printStack();
+  tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
+  unlockme();
 
-  if (sampling_count <= 0) {
-    auto tid = gettid();
-    lockme();
-    printProlog('M');
-    printStack();
-    tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
-    unlockme();
-
-    sampling_count = getNextSampleCount();
-    ++samples;
-  }
+  ++samples;
 
   return ptr;
 }
