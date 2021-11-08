@@ -17,6 +17,12 @@
 
 #include "cxxopts.hpp"
 
+#include <stdint.h> // SIZE_MAX
+#define HMT_START_LOGGING (SIZE_MAX - 1)
+#define HMT_STOP_LOGGING (SIZE_MAX - 2)
+#define HMT_CHECKPOINT (SIZE_MAX - 3)
+void* volatile _;
+
 int main(int argc, char* argv[]) {
   cxxopts::Options options(argv[0], "");
   // clang-format off
@@ -104,6 +110,10 @@ int main(int argc, char* argv[]) {
     localityIterations = result["locality-iterations"].as<int>();
   }
 
+  #ifdef TRACE_MALLOC
+    _ = malloc(HMT_START_LOGGING);
+  #endif
+
   if (result.count("page-litter-v2")) {
 #ifndef NODEBUG
     std::cout << "(page-litter-v2: seed = " << seed << ")" << std::endl;
@@ -163,6 +173,10 @@ int main(int argc, char* argv[]) {
     std::cout << "Starting now." << std::endl;
   }
 
+#ifdef TRACE_MALLOC
+  _ = malloc(HMT_CHECKPOINT);
+#endif
+
   high_resolution_clock::time_point t2 = high_resolution_clock::now();
   duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
 
@@ -202,5 +216,10 @@ int main(int argc, char* argv[]) {
   std::cout << "Time elapsed = ";
 #endif
   std::cout << time_span2.count() - time_span.count() << std::endl;
+
+#ifdef TRACE_MALLOC
+  _ = malloc(HMT_STOP_LOGGING);
+#endif
+
   return 0;
 }
