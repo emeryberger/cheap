@@ -6,9 +6,12 @@
 #include <cassert>
 #include <random>
 #include <algorithm>
+#include <iostream>
 #include <vector>
 #include <ratio>
 #include <utility>
+
+#include <iostream>
 
 /***
  * Litterer
@@ -33,6 +36,7 @@ public:
 	   size_t Seed = 0)
   {
     std::random_device rd;
+    std::cout << "Littering." << std::endl;
     // If there is a non-zero seed set, use it; otherwise, use the
     // random device.
     if (Seed) {
@@ -62,10 +66,10 @@ public:
       }
     }
 
-    #ifndef NODEBUG
+#ifndef NODEBUG
     std::cout << "Allocated " << NObjects << " objects..." << std::endl;
     std::cout << "Min: " << minAddress << ", Max: " << maxAddress << ", Spread: " << (maxAddress - minAddress) << std::endl;
-    #endif
+#endif
 
     assert(allocated.size() == NObjects);
     
@@ -80,6 +84,9 @@ public:
       auto ptr = allocated[i];
       ::free(ptr);
     }
+#ifndef NODEBUG
+    std::cout << "Littering complete." << std::endl;
+#endif
   }
 
   ~Litterer() {
