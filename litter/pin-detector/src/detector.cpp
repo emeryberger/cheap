@@ -13,6 +13,9 @@ static TLS_KEY TlsKey = INVALID_TLS_KEY;
 // For performance benefits, we might want to reserve some space for this
 static std::unordered_map<ADDRINT, ADDRINT> AddressToObjectSizeMap;
 
+// TODO: should be atomic shouldn't it. Maybe make Lock a standard PIN_MUTEX.
+static std::vector<int> Reads(sizeof(intptr_t) * 8);
+
 // This is only safe to set (maybe) on a strictly single-threaded program.
 #ifndef NO_LOCKS
 static PIN_RWMUTEX Lock;
@@ -40,7 +43,6 @@ VOID OnMallocAfter(THREADID ThreadId, ADDRINT Pointer) {
 #endif
 
   ADDRINT SavedSize = *(static_cast<ADDRINT*>(PIN_GetThreadData(TlsKey, ThreadId)));
-  // std::cout << "malloc(" << SavedSize << ")" << std::endl;
   for (ADDRINT i = Pointer; i < Pointer + SavedSize; ++i) {
     AddressToObjectSizeMap[i] = SavedSize;
   }
@@ -56,7 +58,6 @@ VOID OnFree(THREADID ThreadId, const CONTEXT* Context, ADDRINT Pointer) {
 #endif
 
   if (AddressToObjectSizeMap.find(Pointer) != AddressToObjectSizeMap.end()) {
-    // std::cout << "free(" << Pointer << ")" << std::endl;
     for (ADDRINT i = Pointer; i < Pointer + AddressToObjectSizeMap[Pointer]; ++i) {
       AddressToObjectSizeMap.erase(i);
     }
@@ -73,7 +74,13 @@ VOID OnMemoryRead(THREADID ThreadId, ADDRINT Pointer, UINT32 Size) {
 #endif
 
   if (AddressToObjectSizeMap.find(Pointer) != AddressToObjectSizeMap.end()) {
-    // std::cout << "read(" << AddressToObjectSizeMap[Pointer] << ")" << std::endl;
+    ADDRINT ObjectSize = AddressToObjectSizeMap[Pointer];
+    for (ADDRINT i = 0; i < Reads.size(); ++i) {
+      if (ObjectSize >> i == 0) {
+        Reads[i]++;
+        break;
+      }
+    }
   }
 
 #ifndef NO_LOCKS
@@ -85,7 +92,22 @@ VOID OnMemoryWrite(THREADID ThreadId, ADDRINT Pointer, UINT32 Size) {
   // No statistics on writes yet...
 }
 
-VOID OnProgramEnd(INT32 Code, VOID* _) {}
+VOID OnProgramEnd(INT32 Code, VOID* _) {
+    OutputFile.open(KnobOutputFile.Value().c_str());
+
+    ADDRINT MaxI = 0;
+    for (ADDRINT i = 0; i < Reads.size(); ++i) {
+      if (Reads[i] > 0) {
+        MaxI = i;
+      }
+    }
+
+    OutputFile << "{ \"Reads\": [ " << Reads[0];
+    for (ADDRINT i = 1; i <= MaxI; ++i) {
+      OutputFile << ", " << Reads[i];
+    }
+    OutputFile << "] }" << std::endl;
+}
 
 VOID Instruction(INS Instruction, VOID* _) {
   if (INS_IsMemoryRead(Instruction) && !INS_IsStackRead(Instruction)) {
@@ -133,8 +155,6 @@ int main(int argc, char* argv[]) {
   if (PIN_Init(argc, argv)) {
     return Usage();
   }
-
-  OutputFile.open(KnobOutputFile.Value().c_str());
 
   TlsKey = PIN_CreateThreadDataKey(nullptr);
   if (TlsKey == INVALID_TLS_KEY) {
