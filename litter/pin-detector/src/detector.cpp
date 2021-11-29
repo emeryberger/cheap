@@ -11,7 +11,7 @@ static std::ofstream OutputFile;
 static TLS_KEY TlsKey = INVALID_TLS_KEY;
 
 // For performance benefits, we might want to reserve some space for this
-static std::unordered_map<ADDRINT, ADDRINT> addressToObjectSize;
+static std::unordered_map<ADDRINT, ADDRINT> AddressToObjectSizeMap;
 
 // This is only safe to set (maybe) on a strictly single-threaded program.
 #ifndef NO_LOCKS
@@ -42,7 +42,7 @@ VOID OnMallocAfter(THREADID ThreadId, ADDRINT Pointer) {
   ADDRINT SavedSize = *(static_cast<ADDRINT*>(PIN_GetThreadData(TlsKey, ThreadId)));
   // std::cout << "malloc(" << SavedSize << ")" << std::endl;
   for (ADDRINT i = Pointer; i < Pointer + SavedSize; ++i) {
-    addressToObjectSize[i] = SavedSize;
+    AddressToObjectSizeMap[i] = SavedSize;
   }
 
 #ifndef NO_LOCKS
@@ -55,10 +55,10 @@ VOID OnFree(THREADID ThreadId, const CONTEXT* Context, ADDRINT Pointer) {
   PIN_RWMutexWriteLock(&Lock);
 #endif
 
-  if (addressToObjectSize.find(Pointer) != addressToObjectSize.end()) {
+  if (AddressToObjectSizeMap.find(Pointer) != AddressToObjectSizeMap.end()) {
     // std::cout << "free(" << Pointer << ")" << std::endl;
-    for (ADDRINT i = Pointer; i < Pointer + addressToObjectSize[Pointer]; ++i) {
-      addressToObjectSize.erase(i);
+    for (ADDRINT i = Pointer; i < Pointer + AddressToObjectSizeMap[Pointer]; ++i) {
+      AddressToObjectSizeMap.erase(i);
     }
   }
 
@@ -72,8 +72,8 @@ VOID OnMemoryRead(THREADID ThreadId, ADDRINT Pointer, UINT32 Size) {
   PIN_RWMutexReadLock(&Lock);
 #endif
 
-  if (addressToObjectSize.find(Pointer) != addressToObjectSize.end()) {
-    // std::cout << "read(" << addressToObjectSize[Pointer] << ")" << std::endl;
+  if (AddressToObjectSizeMap.find(Pointer) != AddressToObjectSizeMap.end()) {
+    // std::cout << "read(" << AddressToObjectSizeMap[Pointer] << ")" << std::endl;
   }
 
 #ifndef NO_LOCKS
