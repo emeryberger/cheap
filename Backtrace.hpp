@@ -74,12 +74,12 @@ namespace Backtrace {
         };
 
         std::vector<StackFrame> backtrace;
-        backtrace_full(state, skip + 1, onStackFrame, onError, &backtrace);
+        backtrace_full(state, skip, onStackFrame, onError, &backtrace);
         return backtrace;
     }
 
     std::vector<StackFrame> getBacktrace() {
-        return getBacktrace(1);
+        return getBacktrace(0);
     }
 } // namespace Backtrace
 
