@@ -1,13 +1,7 @@
 """cheaper.py: identifies where to apply custom allocators"""
 
-try:
-    import orjson
-
-    jsonlib = orjson
-except BaseException:
-    import json
-
-    jsonlib = json
+import json
+jsonlib = json
 import math
 import os
 import argparse
