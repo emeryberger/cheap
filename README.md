@@ -70,11 +70,10 @@ This generates a file `cheaper.out` in the current directory. That file is a JSO
 
 ### Analyze the trace with `cheaper.py`
 
-You may need to install Rust (https://www.rust-lang.org/tools/install) and files from `requirements.txt` the first time you
+You may need to install Rust (https://www.rust-lang.org/tools/install) the first time you
 run Cheaper:
 
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    pip install -r requirements.txt
 
 Now run Cheaper as follows:
 
