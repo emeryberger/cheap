@@ -18,7 +18,7 @@ const char output_filename[] = "cheaper.out";
 
 #include "printf.h"
 
-auto output_file = open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+auto output_file = open(output_filename, O_CREAT | O_RDWR | O_TRUNC, S_IWUSR | S_IRUSR);
 
 // For use by the replacement printf routines (see
 // https://github.com/mpaland/printf)
@@ -157,7 +157,7 @@ extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
   lockme();
   printProlog('M');
   printStack();
-  printf_("], \"size\": %lu, \"reqsize\": %lu, \"address\": %p, \"tid\": %d }", real_sz, sz, ptr, tid);
+  printf_("], \"size\": %lu, \"reqsize\": %lu, \"address\": %lu, \"tid\": %d }", real_sz, sz, ptr, tid);
   // tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
   unlockme();
 
@@ -183,7 +183,7 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void* ptr) {
   lockme();
   printProlog('F');
   printStack();
-  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %lu, \"tid\": %d }", real_sz, ptr, tid);
   // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
@@ -198,7 +198,7 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void* ptr) {
   lockme();
   printProlog('S');
   printStack();
-  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %lu, \"tid\": %d }", real_sz, ptr, tid);
   // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
@@ -220,7 +220,7 @@ extern "C" ATTRIBUTE_EXPORT void* xxmemalign(size_t alignment, size_t sz) {
   lockme();
   printProlog('A');
   printStack();
-  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %lu, \"tid\": %d }", real_sz, ptr, tid);
   // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
