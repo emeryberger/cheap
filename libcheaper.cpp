@@ -15,7 +15,14 @@ const char output_filename[] = "cheaper.out";
 
 #include "common.hpp"
 #include "nextheap.hpp"
-#include "tprintf.h"
+
+#include "printf.h"
+
+auto output_file = open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
+
+// For use by the replacement printf routines (see
+// https://github.com/mpaland/printf)
+extern "C" void _putchar(char ch) { ::write(output_file, (void *)&ch, 1); }
 
 #include "Backtrace.hpp"
 
@@ -74,10 +81,9 @@ class Initialization {
 public:
   Initialization() {
     ++busy;
-    unlink(output_filename);
-    auto output_file = open(output_filename, O_CREAT | O_RDWR, S_IWUSR | S_IRUSR);
-    tprintf::FD = output_file;
-    tprintf::tprintf("{ \"trace\": [");
+    // tprintf::FD = output_file;
+    // tprintf::tprintf("{ \"trace\": [");
+    printf_("{ \"trace\": [");
 
     Backtrace::initialize(nullptr);
     --busy;
@@ -89,8 +95,9 @@ public:
     isReadyToSample = false;
 
     lockme();
-    tprintf::tprintf("\n]}");
-    fsync(tprintf::FD);
+    printf_("\n]}");
+    // tprintf::tprintf("\n]}");
+    fsync(output_file);
     unlockme();
   }
 
@@ -107,22 +114,26 @@ static void printStack() {
   // Extra stack frames will get filtered out by the utility since libbacktrace won't have access to Cheap's debug info.
   for (const auto& frame : Backtrace::getBacktrace()) {
     char buf[1024];
-    snprintf(buf, 1024, "[%s] %s:%d", frame.function.c_str(), frame.filename.c_str(), frame.lineno);
-    tprintf::tprintf("\"@\", ", buf);
+    snprintf_(buf, 1024, "[%s] %s:%d", frame.function.c_str(), frame.filename.c_str(), frame.lineno);
+    printf_("\"%s\", ", buf);
+    //    tprintf::tprintf("\"@\", ", buf);
   }
 
   // Now print a bogus stack with no commas, just to make JSON processing happy.
-  tprintf::tprintf("\"CHEAPERBAD\""); // Filtered out by cheaper.py
+  printf_("\"CHEAPERBAD\""); // Filtered out by cheaper.py
+  // tprintf::tprintf("\"CHEAPERBAD\""); // Filtered out by cheaper.py
 
   busy--;
 }
 
 static void printProlog(char action) {
   if (samples != 0) {
-    tprintf::tprintf(",");
+    printf_(",");
+    //    tprintf::tprintf(",");
   }
 
-  tprintf::tprintf("\n\t{ \"action\": \"@\", \"stack\": [", action);
+  printf_("\n\t{ \"action\": \"%c\", \"stack\": [", action);
+  //  tprintf::tprintf("\n\t{ \"action\": \"@\", \"stack\": [", action);
 }
 
 extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
@@ -146,7 +157,8 @@ extern "C" ATTRIBUTE_EXPORT void* xxmalloc(size_t sz) {
   lockme();
   printProlog('M');
   printStack();
-  tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
+  printf_("], \"size\": %lu, \"reqsize\": %lu, \"address\": %p, \"tid\": %d }", real_sz, sz, ptr, tid);
+  // tprintf::tprintf("], \"size\": @, \"reqsize\": @, \"address\": @, \"tid\": @ }", real_sz, sz, ptr, tid);
   unlockme();
 
   ++samples;
@@ -171,7 +183,8 @@ extern "C" ATTRIBUTE_EXPORT void xxfree(void* ptr) {
   lockme();
   printProlog('F');
   printStack();
-  tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
 }
@@ -185,7 +198,8 @@ extern "C" ATTRIBUTE_EXPORT size_t xxmalloc_usable_size(void* ptr) {
   lockme();
   printProlog('S');
   printStack();
-  tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
 
@@ -206,7 +220,8 @@ extern "C" ATTRIBUTE_EXPORT void* xxmemalign(size_t alignment, size_t sz) {
   lockme();
   printProlog('A');
   printStack();
-  tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
+  printf_("], \"size\": %lu, \"address\": %p, \"tid\": %d }", real_sz, ptr, tid);
+  // tprintf::tprintf("], \"size\": @, \"address\": @, \"tid\": @ }", real_sz, ptr, tid);
   unlockme();
   ++samples;
 
