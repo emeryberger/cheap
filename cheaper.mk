@@ -1,7 +1,6 @@
 PYTHON = python3
-SOURCES = libcheaper.cpp libcheapen.cpp cheapen.h
+SOURCES = libcheaper.cpp libcheapen.cpp printf.cpp
 LIBNAME = cheaper
-
 include heaplayers-make.mk
 
 .PHONY: format test
