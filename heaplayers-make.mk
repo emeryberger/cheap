@@ -1,4 +1,4 @@
-CPPFLAGS = -ftls-model=initial-exec -W -Wall -flto -std=c++14 -DNDEBUG -fno-builtin-malloc -fvisibility=hidden -O3
+CPPFLAGS = -ftls-model=initial-exec -W -Wall -flto -std=c++14 -DNDEBUG -fno-builtin-malloc -fvisibility=hidden -O3 -g
 # CPPFLAGS = -fno-inline -fno-inline-functions -std=c++14 -g
 CXX = clang++
 
