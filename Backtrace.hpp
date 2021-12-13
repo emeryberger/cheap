@@ -38,10 +38,10 @@ namespace Backtrace {
         }
 
         const auto onError = [](void*, const char* msg, int errnum) {
-            std::cerr << "Error #" << errnum << " while getting backtrace. Message: " << msg << std::endl;
+	  std::cerr << "Error #" << errnum << " while getting backtrace. Message: " << msg << std::endl;
         };
 
-        const auto onStackFrame = [](void* data, uintptr_t, const char* filename, int lineno, const char* function) {
+        const auto onStackFrame = [](void* data, uintptr_t pc, const char* filename, int lineno, const char* function) {
             auto* backtrace = static_cast<std::vector<StackFrame>*>(data);
 
             StackFrame frame;
@@ -56,6 +56,16 @@ namespace Backtrace {
             } else {
                 int status;
                 char* demangled_function = abi::__cxa_demangle(function, nullptr, nullptr, &status);
+		if (demangled_function) {
+		  // std::cerr << "DEMANGLED = " << demangled_function << std::endl;
+		} else {
+		  Dl_info info;
+		  int status = dladdr((void *) pc, &info);
+		  if (status) {
+		    filename = info.dli_sname;
+		    //		    std::cerr << "C FUNCTION NAME = " << info.dli_sname << std::endl;
+		  }
+		}
                 if (status == 0) {
                     frame.function = std::string(demangled_function);
                     static decltype(::free)* free = (decltype(::free)*) dlsym(RTLD_DEFAULT, "free");
