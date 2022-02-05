@@ -159,9 +159,9 @@ namespace bdlma {
 
     // MANIPULATORS
   void *allocate() {
-    d_mutex.lock();
+    lock();
     auto ptr = pool.malloc(d_blockSize);
-    d_mutex.unlock();
+    unlock();
     return ptr;
   }
   
@@ -169,9 +169,9 @@ namespace bdlma {
         // block size specified at construction.
 
   void deallocate(void *address) {
-    d_mutex.lock();
+    lock();
     pool.free(address);
-    d_mutex.unlock();
+    unlock();
   }
         // Relinquish the memory block at the specified 'address' back to this
         // pool object for reuse.  The behavior is undefined unless 'address'
@@ -313,9 +313,9 @@ void ConcurrentPool::deleteObject(const TYPE *object)
 #else
         const_cast<TYPE *>(object)->~TYPE();
 #endif
-        d_mutex.lock();
+        lock();
         pool.free(const_cast<TYPE *>(object));
-        d_mutex.unlock();
+        unlock();
     }
 }
 
@@ -333,18 +333,18 @@ void ConcurrentPool::deleteObjectRaw(const TYPE *object)
         object->~TYPE();
 #endif
 
-        d_mutex.lock();
+        lock();
         pool.free(const_cast<TYPE *>(object));
-        d_mutex.unlock();
+        unlock();
     }
 }
 
 inline
 void ConcurrentPool::release()
 {
-    d_mutex.lock();
+  lock();
     pool.release();
-    d_mutex.unlock();
+  unlock();
 }
 
 // ACCESSORS
@@ -382,18 +382,14 @@ void *operator new(bsl::size_t size, BloombergLP::bdlma::ConcurrentPool& pool)
 #endif
 
     static_cast<void>(size);  // suppress "unused parameter" warnings
-    pool.lock();
     auto ptr = pool.allocate();
-    pool.unlock();
     return ptr;
 }
 
 inline
 void operator delete(void *address, BloombergLP::bdlma::ConcurrentPool& pool)
 {
-    pool.lock();
     pool.deallocate(address);
-    pool.unlock();
 }
 
 
