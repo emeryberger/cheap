@@ -3,9 +3,6 @@
 #ifndef SHIM_BUFFERMANAGER_HPP
 #define SHIM_BUFFERMANAGER_HPP
 
-#define COLLECT_STATS 0  // FIXME
-#define REPORT_STATS 0
-
 #include <cstdlib>
 #include <cstdint>
 #include <cstdlib>
@@ -19,7 +16,7 @@
 #include <bsls_review.h>
 #include <bsls_types.h>
 
-#include "simregion.h"
+#include "simpool.h"
 
 #include <stdio.h>
 
@@ -30,22 +27,7 @@ namespace bdlma {
                            // class BufferManager
                            // ===================
 
-  class PrintBufferManager {
-  public:
-    PrintBufferManager() {
-      //      printMeOnce();
-    }
-    void printMeOnce()
-    {
-      static bool printed = false;
-      if (!printed) {
-	printed = true;
-	printf("BufferManager\n");
-      }
-    }
-  };
-  
-  class BufferManager { // : public PrintBufferManager {
+  class BufferManager {
   private:
     // NOT IMPLEMENTED
     BufferManager(const BufferManager&);
@@ -68,16 +50,7 @@ namespace bdlma {
     unsigned char           d_alignmentOrMask;   // a mask used during the
                                                  // alignment calculation
 
-//   static constexpr int SIZE = 8; // FIXME NOT CURRENTLY USED
-  SimRegion _allocVector;
-#if COLLECT_STATS
-  size_t _allocations;  // total number of allocations
-  size_t _allocated;    // total bytes allocated
-  size_t _frees;        // total number of frees
-  size_t _deallocations;
-  size_t _releases;
-  size_t _rewinds;
-#endif
+  SimPool _allocVector;
   
   public:
     // CREATORS
@@ -222,22 +195,6 @@ namespace bdlma {
         // 'false' otherwise.  The behavior is undefined unless '0 < size', and
         // this object is currently managing a buffer.
 
-  void printStats() {
-#if REPORT_STATS
-#if !COLLECT_STATS
-#else
-    std::cout << "Statistics for BufferManager " << this << std::endl;
-    std::cout << "-------------------------------------------" << std::endl;
-    std::cout << "allocations:\t" << _allocations << std::endl;
-    std::cout << "alloc-bytes:\t" << _allocated << std::endl;
-    std::cout << "deallocations:\t" << _deallocations << std::endl;
-    std::cout << "frees:        \t" << _frees << std::endl;
-    std::cout << "rewinds:\t" << _rewinds << std::endl;
-    std::cout << "releases:\t" << _releases << std::endl;
-#endif
-#endif
-  }
-  
 };
 
 // ============================================================================
@@ -260,15 +217,6 @@ BufferManager::BufferManager(bsls::Alignment::Strategy strategy)
 , d_alignmentOrMask(  strategy != bsls::Alignment::BSLS_BYTEALIGNED
                     ? bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT
 		      : 1)
-#if COLLECT_STATS
-,_allocations(0),
-    _allocated(0),
-    _frees(0),
-    _deallocations(0),
-    _rewinds(0),
-    _releases(0)
-#endif
-  //  _allocVector (new SimRegion(SIZE))
 {
 }
 
@@ -285,15 +233,7 @@ BufferManager::BufferManager(char                      *buffer,
 , d_alignmentOrMask(  strategy != bsls::Alignment::BSLS_BYTEALIGNED
                     ? bsls::AlignmentUtil::BSLS_MAX_ALIGNMENT
 		      : 1)
-#if COLLECT_STATS
-,_allocations(0),
-    _allocated(0),
-    _frees(0),
-    _deallocations(0),
-    _rewinds(0),
-    _releases(0)
-#endif
-  //  _allocVector (new SimRegion((unsigned int) bufferSize))
+,  _allocVector (bufferSize)
 {
 }
 
@@ -301,15 +241,12 @@ inline
 BufferManager::~BufferManager()
 {
   release();
-  printStats();
-  //  delete _allocVector;
 }
 
 // MANIPULATORS
 inline
 void *BufferManager::allocate(bsls::Types::size_type size)
 {
-  //  fprintf(stderr, "BufferManager::allocate(%lu)\n", size);
   return _allocVector.allocate(size);
 }
 
@@ -351,16 +288,13 @@ char *BufferManager::replaceBuffer(char                   *newBuffer,
     d_buffer_p      = newBuffer;
     d_bufferSize    = newBufferSize;
     d_cursor        = 0;
-
+    _allocVector.resetSize(newBufferSize);
     return oldBuffer;
 }
 
 inline
 void BufferManager::release()
 {
-#if COLLECT_STATS
-    _releases++;
-#endif
     _allocVector.release();
 }
 
