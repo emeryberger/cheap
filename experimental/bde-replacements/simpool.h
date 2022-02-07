@@ -3,7 +3,7 @@
 #ifndef SIMPOOL_HPP
 #define SIMPOOL_HPP
 
-#include "dllist.h"
+#include <dllist.h>
 
 #include <cstddef>
 #include <cstdlib>
