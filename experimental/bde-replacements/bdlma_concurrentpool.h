@@ -6,7 +6,7 @@
 #include <bsls_ident.h>
 BSLS_IDENT("$Id: $")
 
-#include "simpool.h"
+#include <bdlma_simpool.h>
 
 #include <bdlscm_version.h>
 

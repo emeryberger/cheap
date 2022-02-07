@@ -16,7 +16,7 @@
 #include <bsls_review.h>
 #include <bsls_types.h>
 
-#include "simpool.h"
+#include <bdlma_simpool.h>
 
 #include <stdio.h>
 
