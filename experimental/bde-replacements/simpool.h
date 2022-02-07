@@ -5,8 +5,6 @@
 
 #include "dllist.h"
 
-#warning "SIMPOOL"
-
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
