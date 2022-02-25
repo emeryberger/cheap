@@ -6,6 +6,8 @@
 #include <random>
 #include <vector>
 
+#include <dlfcn.h>
+
 // https://json.nlohmann.me
 #include "json.hpp"
 using json = nlohmann::json;
@@ -27,11 +29,13 @@ using json = nlohmann::json;
 #define LITTER_OCCUPANCY 0.95
 #endif
 
-static std::chrono::high_resolution_clock::time_point StartTime;
-
 class Initialization {
 public:
   Initialization() {
+    Dl_info MallocInformation;
+    assert(dladdr((void*) &malloc, &MallocInformation) != 0);
+    std::cerr << "Using malloc from: " << MallocInformation.dli_fname << std::endl;
+
     std::ifstream InputFile(DETECTOR_OUTPUT_FILENAME);
     json Data;
     InputFile >> Data;
@@ -52,7 +56,8 @@ public:
       Distributions.emplace_back(((intptr_t) 1) << (i - 1), (((intptr_t) 1) << i) - 1);
     }
 
-    std::cout << "Starting to litter..." << std::endl;
+    std::cerr << "Starting to litter..." << std::endl;
+    std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
 
     std::random_device Generator;
     std::uniform_int_distribution<long long int> Distribution(0, NAllocations - 1);
@@ -73,7 +78,7 @@ public:
 #if MAX_LITTER
       LitterSize += AllocationSize;
       if (LitterSize > MAX_LITTER) {
-        std::cout << "Stopped allocating at " << i << " / " << NAllocationsLitter << " ("
+        std::cerr << "Stopped allocating at " << i << " / " << NAllocationsLitter << " ("
                   << (100.0 * i / NAllocationsLitter) << "%) objects because MAX_LITTER = " << MAX_LITTER
                   << " was reached." << std::endl;
         break;
@@ -84,28 +89,30 @@ public:
       Objects.push_back(Pointer);
 
       if (i % ((long long int) (0.05 * NAllocationsLitter)) == 0) {
-        std::cout << "Allocated " << i << " / " << NAllocationsLitter << " (" << (100.0 * i / NAllocationsLitter)
+        std::cerr << "Allocated " << i << " / " << NAllocationsLitter << " (" << (100.0 * i / NAllocationsLitter)
                   << "%) objects." << std::endl;
       }
     }
 
-    std::cout << "Shuffling objects..." << std::endl;
-    std::shuffle(Objects.begin(), Objects.end(), Generator);
-    std::cout << "Freeing objects..." << std::endl;
     long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
+    std::cerr << "Shuffling objects..." << std::endl;
+    for (int i = 0; i < NObjectsToBeFreed; ++i) {
+      std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
+      int Index = IndexDistribution(Generator);
+      void* Temporary = Objects[i];
+      Objects[i] = Objects[Index];
+      Objects[Index] = Temporary;
+    }
+    
+    std::cerr << "Freeing objects..." << std::endl;
     for (long long int i = 0; i < NObjectsToBeFreed; ++i) {
       free(Objects[i]);
     }
+    std::cerr << "Finished littering.";
 
-    std::cout << "Finished littering." << std::endl;
-
-    StartTime = std::chrono::high_resolution_clock::now();
-  }
-
-  ~Initialization() {
     std::chrono::high_resolution_clock::time_point EndTime = std::chrono::high_resolution_clock::now();
-    std::ofstream OutputFile(LITTERER_OUTPUT_FILENAME, std::ios_base::app);
-    OutputFile << (EndTime - StartTime).count() << std::endl;
+    std::chrono::seconds Elapsed = std::chrono::duration_cast<std::chrono::seconds>((EndTime - StartTime));
+    std::cerr << " Time taken: " << Elapsed.count() << " seconds." << std::endl;
   }
 };
 
