@@ -5,7 +5,11 @@ LDFLAGS := -fPIC -shared
 BUILD_DIRECTORY := build
 
 .PHONY: all
-all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/liblitterer-allocate.so $(BUILD_DIRECTORY)/benchmark
+all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/benchmark
+
+.PHONY: clean
+clean:
+	rm -rf $(BUILD_DIRECTORY)
 
 $(BUILD_DIRECTORY)/libdetector.so: detector.cpp
 	mkdir -p $(BUILD_DIRECTORY)

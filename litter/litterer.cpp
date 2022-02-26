@@ -56,7 +56,6 @@ public:
       Distributions.emplace_back(((intptr_t) 1) << (i - 1), (((intptr_t) 1) << i) - 1);
     }
 
-    std::cerr << "Starting to litter..." << std::endl;
     std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
 
     std::random_device Generator;
@@ -89,10 +88,12 @@ public:
       Objects.push_back(Pointer);
 
       if (i % ((long long int) (0.05 * NAllocationsLitter)) == 0) {
-        std::cerr << "Allocated " << i << " / " << NAllocationsLitter << " (" << (100.0 * i / NAllocationsLitter)
-                  << "%) objects." << std::endl;
+        std::cerr << "\rAllocated " << i << " / " << NAllocationsLitter << " (" << (100.0 * i / NAllocationsLitter)
+                  << "%) objects.";
       }
     }
+
+    std::cerr << std::endl;
 
     long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
     std::cerr << "Shuffling objects..." << std::endl;
@@ -104,15 +105,13 @@ public:
       Objects[Index] = Temporary;
     }
     
-    std::cerr << "Freeing objects..." << std::endl;
     for (long long int i = 0; i < NObjectsToBeFreed; ++i) {
       free(Objects[i]);
     }
-    std::cerr << "Finished littering.";
-
+    
     std::chrono::high_resolution_clock::time_point EndTime = std::chrono::high_resolution_clock::now();
     std::chrono::seconds Elapsed = std::chrono::duration_cast<std::chrono::seconds>((EndTime - StartTime));
-    std::cerr << " Time taken: " << Elapsed.count() << " seconds." << std::endl;
+    std::cerr << "Finished littering." << " Time taken: " << Elapsed.count() << " seconds." << std::endl;
   }
 };
 
