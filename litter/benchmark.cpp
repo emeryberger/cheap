@@ -12,35 +12,35 @@
 #define BYTES_TO_READ 1
 
 int main() {
-  void** Objects = new void*[ITERATIONS];
+    void** Objects = new void*[ITERATIONS];
 
-  std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
 
-  for (int i = 0; i < LOOPS; i++) {
-    for (int j = 0; j < ITERATIONS; j++) {
-      void* Pointer = malloc(OBJECT_SIZE);
-      memset(Pointer, 13, OBJECT_SIZE);
-      Objects[j] = Pointer;
+    for (int i = 0; i < LOOPS; i++) {
+        for (int j = 0; j < ITERATIONS; j++) {
+            void* Pointer = malloc(OBJECT_SIZE);
+            memset(Pointer, 13, OBJECT_SIZE);
+            Objects[j] = Pointer;
+        }
+
+        char Counter = 0;
+        for (int i = 0; i < LOCALITY_ITERATIONS; i++) {
+            for (int j = 0; j < ITERATIONS; j++) {
+                char Buffer[OBJECT_SIZE];
+                memcpy((void*) Buffer, Objects[j], BYTES_TO_READ);
+                Counter += Buffer[OBJECT_SIZE - 1];
+                DoNotOptimize(Buffer);
+            }
+        }
+        DoNotOptimize(Counter);
+
+        for (int i = 0; i < ITERATIONS; ++i) {
+            free(Objects[i]);
+        }
     }
 
-    char Counter = 0;
-    for (int i = 0; i < LOCALITY_ITERATIONS; i++) {
-      for (int j = 0; j < ITERATIONS; j++) {
-        char Buffer[OBJECT_SIZE];
-        memcpy((void*) Buffer, Objects[j], BYTES_TO_READ);
-        Counter += Buffer[OBJECT_SIZE - 1];
-        DoNotOptimize(Buffer);
-      }
-    }
-    DoNotOptimize(Counter);
+    delete[] Objects;
 
-    for (int i = 0; i < ITERATIONS; ++i) {
-      free(Objects[i]);
-    }
-  }
-
-  delete[] Objects;
-
-  std::chrono::high_resolution_clock::time_point EndTime = std::chrono::high_resolution_clock::now();
-  std::cout << (EndTime - StartTime).count() << std::endl;
+    std::chrono::high_resolution_clock::time_point EndTime = std::chrono::high_resolution_clock::now();
+    std::cout << (EndTime - StartTime).count() << std::endl;
 }
