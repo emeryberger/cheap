@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -90,7 +91,7 @@ class Initialization {
 
             if (i % ((long long int) (0.05 * NAllocationsLitter)) == 0) {
                 std::cerr << "\rAllocated " << i << " / " << NAllocationsLitter << " ("
-                          << (100.0 * i / NAllocationsLitter) << "%) objects.";
+                          << round(100.0 * i / NAllocationsLitter) << "%) objects.";
             }
         }
 
