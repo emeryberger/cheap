@@ -15,15 +15,16 @@ using json = nlohmann::json;
 
 #include "constants.hpp"
 
-// (NAllocations * LITTER_MULTIPLIER) objects will be allocated by the litterer.
+// (MaxLiveAllocations * LITTER_MULTIPLIER) objects will be allocated by the litterer.
 // If MAX_LITTER > 0, it will be used as the hard limit in bytes of allocated space.
 // Then, (1 - LITTER_OCCUPANCY) of them will be freed randomly.
-#ifndef MAX_LITTER
-#define MAX_LITTER 0
-#endif
 
 #ifndef LITTER_MULTIPLIER
-#define LITTER_MULTIPLIER 10
+#define LITTER_MULTIPLIER 200
+#endif
+
+#ifndef MAX_LITTER
+#define MAX_LITTER 0
 #endif
 
 #ifndef LITTER_OCCUPANCY
@@ -47,7 +48,8 @@ class Initialization {
         }
 
         long long int NAllocations = Data["NAllocations"].get<long long int>();
-        long long int NAllocationsLitter = NAllocations * LITTER_MULTIPLIER;
+        long long int MaxLiveAllocations = Data["MaxLiveAllocations"].get<long long int>();
+        long long int NAllocationsLitter = MaxLiveAllocations * LITTER_MULTIPLIER;
 
         std::vector<std::uniform_int_distribution<size_t>> Distributions =
             *(new std::vector<std::uniform_int_distribution<size_t>>);
@@ -68,6 +70,7 @@ class Initialization {
         size_t LitterSize = 0;
 #endif
 
+        int Percentage = -1;
         for (long long int i = 0; i < NAllocationsLitter; ++i) {
             int DistributionIndex = 0;
             for (int Offset = Distribution(Generator); Offset > 0;
@@ -89,9 +92,10 @@ class Initialization {
             void* Pointer = malloc(AllocationSize);
             Objects.push_back(Pointer);
 
-            if (i % ((long long int) (0.05 * NAllocationsLitter)) == 0) {
-                std::cerr << "\rAllocated " << i << " / " << NAllocationsLitter << " ("
-                          << round(100.0 * i / NAllocationsLitter) << "%) objects.";
+            int NewPercentage = 100.0 * (i + 1) / NAllocationsLitter;
+            if (NewPercentage > Percentage) {
+                Percentage = NewPercentage;
+                std::cerr << "\rAllocated " << i << " / " << NAllocationsLitter << " (" << Percentage << "%) objects.";
             }
         }
 

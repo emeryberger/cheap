@@ -12,6 +12,9 @@ static thread_local int Busy{0};
 static std::vector<std::atomic_int> Bins(sizeof(intptr_t) * 8);
 static std::atomic_int64_t NAllocations{0};
 static std::atomic<double> Average{0};
+// Increments by 1 on malloc/calloc, and decrements by 1 on free.
+static std::atomic_int64_t LiveAllocations{0};
+static std::atomic_int64_t MaxLiveAllocations{0};
 
 class Initialization {
   public:
@@ -32,7 +35,8 @@ class Initialization {
         for (int i = 1; i <= MaxI; ++i) {
             OutputFile << ", " << Bins[i];
         }
-        OutputFile << "], \"NAllocations\": " << NAllocations << ", \"Average\": " << Average << " }" << std::endl;
+        OutputFile << "], \"NAllocations\": " << NAllocations << ", \"Average\": " << Average
+                   << ", \"MaxLiveAllocations\": " << MaxLiveAllocations << " }" << std::endl;
     }
 };
 
@@ -56,8 +60,59 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
         Average = Average + (Size - Average) / (NAllocations + 1);
         NAllocations++;
 
+        long int LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
+        long int MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        while (LiveAllocationsSnapshot > MaxLiveAllocationsSnapshot) {
+            MaxLiveAllocations.compare_exchange_weak(MaxLiveAllocationsSnapshot, LiveAllocationsSnapshot);
+            MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        }
+
         --Busy;
     }
 
     return Pointer;
+}
+
+extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
+    static decltype(::calloc)* Calloc = (decltype(::calloc)*) dlsym(RTLD_NEXT, "calloc");
+
+    void* Pointer = (*Calloc)(N, Size);
+
+    size_t TotalSize = N * Size;
+    if (!Busy && Ready) {
+        ++Busy;
+
+        for (int i = 0; i < Bins.size(); ++i) {
+            if (TotalSize >> i == 0) {
+                Bins[i]++;
+                break;
+            }
+        }
+
+        Average = Average + (TotalSize - Average) / (NAllocations + 1);
+        NAllocations++;
+
+        long int LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
+        long int MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        while (LiveAllocationsSnapshot > MaxLiveAllocationsSnapshot) {
+            MaxLiveAllocations.compare_exchange_weak(MaxLiveAllocationsSnapshot, LiveAllocationsSnapshot);
+            MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        }
+
+        --Busy;
+    }
+
+    return Pointer;
+}
+
+extern "C" ATTRIBUTE_EXPORT void free(void* Pointer) noexcept {
+    static decltype(::free)* Free = (decltype(::free)*) dlsym(RTLD_NEXT, "free");
+
+    if (!Busy && Ready) {
+        ++Busy;
+        LiveAllocations--;
+        --Busy;
+    }
+
+    (*Free)(Pointer);
 }
