@@ -46,7 +46,7 @@ class Initialization {
             return;
         }
 
-        if (Data["Bins"][Data["SizeClasses"].size()] != 0) {
+        if (Data["Bins"][Data["SizeClasses"].size()].get<int>() != 0) {
             std::cerr << "WARNING: Allocations of size greater than the maximum size class were recorded." << std::endl;
             std::cerr << "WARNING: There will be no littering for these allocations." << std::endl;
             std::cerr << "WARNING: This represents "
@@ -58,17 +58,24 @@ class Initialization {
 
         std::random_device Generator;
         std::uniform_int_distribution<long long int> Distribution(
-            0, NAllocations - Data["Bins"][Data["SizeClasses"].size()].get<long long int>() - 1);
+            0, NAllocations - Data["Bins"][Data["SizeClasses"].size()].get<int>() - 1);
         std::vector<void*> Objects = *(new std::vector<void*>);
         Objects.reserve(NAllocationsLitter);
 
         int Percentage = -1;
         for (long long int i = 0; i < NAllocationsLitter; ++i) {
-            int SizeClassIndex = 0;
-            for (int Offset = Distribution(Generator); Offset > 0; Offset -= Data["Bins"][SizeClassIndex].get<int>()) {
+            size_t MinAllocationSize = 0;
+            size_t SizeClassIndex = 0;
+            long long int Offset = Distribution(Generator) - (long long int) Data["Bins"][0].get<int>();
+
+            while (Offset >= 0LL) {
+                MinAllocationSize = Data["SizeClasses"][SizeClassIndex].get<size_t>() + 1;
                 ++SizeClassIndex;
+                Offset -= (long long int) Data["Bins"][SizeClassIndex].get<int>();
             }
-            size_t AllocationSize = Data["SizeClasses"][SizeClassIndex];
+            size_t MaxAllocationSize = Data["SizeClasses"][SizeClassIndex].get<size_t>();
+            std::uniform_int_distribution<size_t> AllocationSizeDistribution(MinAllocationSize, MaxAllocationSize);
+            size_t AllocationSize = AllocationSizeDistribution(Generator);
 
             void* Pointer = malloc(AllocationSize);
             Objects.push_back(Pointer);

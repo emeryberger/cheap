@@ -11,7 +11,7 @@ static thread_local int Busy{0};
 
 #ifndef SIZE_CLASSES
 // See http://jemalloc.net/jemalloc.3.html, up to 64MiB.
-#define JEMALLOC_SIZE_CLASSES                                                                                                   \
+#define JEMALLOC_SIZE_CLASSES                                                                                          \
     {                                                                                                                  \
         8, 16, 32, 48, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 640, 768, 896, 1024, 1280, 1536,  \
             1792, 2048, 2560, 3072, 3584, 4096, 5120, 6144, 7168, 8192, 10240, 12288, 14336, 16384, 20480, 24576,      \
