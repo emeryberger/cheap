@@ -19,6 +19,10 @@ $(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp
 	mkdir -p $(BUILD_DIRECTORY)
 	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
 
-$(BUILD_DIRECTORY)/benchmark:
+$(BUILD_DIRECTORY)/benchmark: benchmark.cpp
 	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) -std=c++20 -g -Wall -O3 -fno-omit-frame-pointer -o $(BUILD_DIRECTORY)/benchmark benchmark.cpp
+	$(CXX) $< -std=c++20 -g -Wall -O3 -fno-omit-frame-pointer -o $(BUILD_DIRECTORY)/benchmark
+
+.PHONY: format
+format:
+	clang-format -i detector.cpp litterer.cpp benchmark.cpp constants.hpp

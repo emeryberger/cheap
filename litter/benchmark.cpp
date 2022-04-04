@@ -6,8 +6,8 @@
 #include "DoNotOptimize.hpp"
 
 #define LOOPS 10
-#define ITERATIONS 200000
-#define LOCALITY_ITERATIONS 500
+#define ITERATIONS 2000
+#define LOCALITY_ITERATIONS 5000
 #define OBJECT_SIZE 16
 #define BYTES_TO_READ 1
 
