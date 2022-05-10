@@ -5,7 +5,7 @@ LDFLAGS := -fPIC -shared
 BUILD_DIRECTORY := build
 
 .PHONY: all
-all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/benchmark
+all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/libexperiment.so $(BUILD_DIRECTORY)/benchmark
 
 .PHONY: clean
 clean:
@@ -16,6 +16,10 @@ $(BUILD_DIRECTORY)/libdetector.so: detector.cpp
 	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
 
 $(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp
+	mkdir -p $(BUILD_DIRECTORY)
+	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl # -DSLEEP_BEFORE_PROGRAM=20
+
+$(BUILD_DIRECTORY)/libexperiment.so: experiment.cpp
 	mkdir -p $(BUILD_DIRECTORY)
 	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
 

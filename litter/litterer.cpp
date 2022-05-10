@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <dlfcn.h>
+#include <unistd.h>
 
 // https://json.nlohmann.me
 #include "json.hpp"
@@ -107,6 +108,13 @@ class Initialization {
         std::chrono::high_resolution_clock::time_point EndTime = std::chrono::high_resolution_clock::now();
         std::chrono::seconds Elapsed = std::chrono::duration_cast<std::chrono::seconds>((EndTime - StartTime));
         std::cerr << "Finished littering. Time taken: " << Elapsed.count() << " seconds." << std::endl;
+
+#ifdef SLEEP_BEFORE_PROGRAM
+        std::cerr << "Sleeping " << SLEEP_BEFORE_PROGRAM << " seconds before starting the program (PID: " << getpid()
+                  << ")..." << std::endl;
+        sleep(SLEEP_BEFORE_PROGRAM);
+        std::cerr << "Starting program now!" << std::endl;
+#endif
     }
 };
 
