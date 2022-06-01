@@ -1,11 +1,11 @@
 CXX := clang++
-CXXFLAGS := --std=c++20 -fPIC -g -Wall -fvisibility=hidden -O3
-LDFLAGS := -fPIC -shared
+CXXFLAGS := --std=c++17 -fPIC -g -Wall -fvisibility=hidden -O3 -Ivendor/libpfm4/include
+LDFLAGS := -fPIC -shared -Lvendor/libpfm4/lib
 
 BUILD_DIRECTORY := build
 
 .PHONY: all
-all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/libexperiment.so $(BUILD_DIRECTORY)/benchmark
+all: $(BUILD_DIRECTORY)/libdetector.so $(BUILD_DIRECTORY)/liblitterer.so $(BUILD_DIRECTORY)/benchmark
 
 .PHONY: clean
 clean:
@@ -15,17 +15,18 @@ $(BUILD_DIRECTORY)/libdetector.so: detector.cpp
 	mkdir -p $(BUILD_DIRECTORY)
 	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
 
-$(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp
+$(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp vendor/libpfm4
 	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl # -DSLEEP_BEFORE_PROGRAM=20
-
-$(BUILD_DIRECTORY)/libexperiment.so: experiment.cpp
-	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
+	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl -lpfm -DOUTPUT_PERF_DATA
 
 $(BUILD_DIRECTORY)/benchmark: benchmark.cpp
 	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) $< -std=c++20 -g -Wall -O3 -fno-omit-frame-pointer -o $(BUILD_DIRECTORY)/benchmark
+	$(CXX) $< -std=c++17 -g -Wall -O3 -fno-omit-frame-pointer -o $(BUILD_DIRECTORY)/benchmark
+
+vendor/libpfm4:
+	mkdir vendor
+	git clone https://github.com/wcohen/libpfm4 $@
+	cd $@ && make
 
 .PHONY: format
 format:
