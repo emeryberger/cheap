@@ -1,6 +1,6 @@
 CXX := clang++
-CXXFLAGS := --std=c++17 -fPIC -g -Wall -fvisibility=hidden -O3 -Ivendor/libpfm4/include
-LDFLAGS := -fPIC -shared -Lvendor/libpfm4/lib
+CXXFLAGS := --std=c++17 -fPIC -g -Wall -fvisibility=hidden -O3
+LDFLAGS := -fPIC -shared
 
 BUILD_DIRECTORY := build
 
@@ -15,9 +15,15 @@ $(BUILD_DIRECTORY)/libdetector.so: detector.cpp
 	mkdir -p $(BUILD_DIRECTORY)
 	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl
 
+ifdef OUTPUT_PERF_DATA
 $(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp vendor/libpfm4
 	mkdir -p $(BUILD_DIRECTORY)
-	$(CXX) $< $(CXXFLAGS) $(LDFLAGS) -o $@ -ldl -lpfm -DOUTPUT_PERF_DATA
+	$(CXX) $< $(CXXFLAGS) -Ivendor/libpfm4/include -DOUTPUT_PERF_DATA $(EXTRAFLAGS) $(LDFLAGS) -Lvendor/libpfm4/lib -o $@ -ldl -lpfm
+else
+$(BUILD_DIRECTORY)/liblitterer.so: litterer.cpp
+	mkdir -p $(BUILD_DIRECTORY)
+	$(CXX) $< $(CXXFLAGS) $(EXTRAFLAGS) $(LDFLAGS) -o $@ -ldl
+endif
 
 $(BUILD_DIRECTORY)/benchmark: benchmark.cpp
 	mkdir -p $(BUILD_DIRECTORY)

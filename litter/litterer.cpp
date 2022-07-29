@@ -103,8 +103,10 @@ class Initialization {
             }
 
             std::cerr << std::endl;
-
+            
             long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
+
+#ifndef NO_SHUFFLE
             std::cerr << "Shuffling objects..." << std::endl;
             for (int i = 0; i < NObjectsToBeFreed; ++i) {
                 std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
@@ -113,6 +115,9 @@ class Initialization {
                 Objects[i] = Objects[Index];
                 Objects[Index] = Temporary;
             }
+#else
+            std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
+#endif
 
             for (long long int i = 0; i < NObjectsToBeFreed; ++i) {
                 free(Objects[i]);
@@ -122,6 +127,13 @@ class Initialization {
             std::chrono::seconds Elapsed = std::chrono::duration_cast<std::chrono::seconds>((EndTime - StartTime));
             std::cerr << "Finished littering. Time taken: " << Elapsed.count() << " seconds." << std::endl;
         }
+
+#ifdef SLEEP_BEFORE_PROGRAM
+        std::cerr << "Sleeping " << SLEEP_BEFORE_PROGRAM << " seconds before starting the program (PID: " << getpid()
+                  << ")..." << std::endl;
+        sleep(SLEEP_BEFORE_PROGRAM);
+        std::cerr << "Starting program now!" << std::endl;
+#endif
 
 
         #ifdef OUTPUT_PERF_DATA
