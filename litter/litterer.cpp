@@ -97,13 +97,11 @@ class Initialization {
                 int NewPercentage = 100.0 * (i + 1) / NAllocationsLitter;
                 if (NewPercentage > Percentage) {
                     Percentage = NewPercentage;
-                    std::cerr << "\rAllocated " << i + 1 << " / " << NAllocationsLitter << " (" << Percentage
-                            << "%) objects.";
+                    std::cerr << "Allocated " << i + 1 << " / " << NAllocationsLitter << " (" << Percentage
+                            << "%) objects." << std::endl;
                 }
             }
 
-            std::cerr << std::endl;
-            
             long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
 
 #ifndef NO_SHUFFLE
@@ -134,7 +132,6 @@ class Initialization {
         sleep(SLEEP_BEFORE_PROGRAM);
         std::cerr << "Starting program now!" << std::endl;
 #endif
-
 
         #ifdef OUTPUT_PERF_DATA
 	    PFMWrapper::start();
