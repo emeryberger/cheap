@@ -56,6 +56,11 @@ class Initialization {
         #else
         std::cerr << "shuffle    : yes" << std::endl;
         #endif
+        #ifdef SLEEP_BEFORE_PROGRAM
+        std::cerr << "sleep      : " << SLEEP_BEFORE_PROGRAM << std::endl;
+        #else
+        std::cerr << "sleep      : no" << SLEEP_BEFORE_PROGRAM << std::endl;
+        #endif
         std::cerr << "multiplier : " << LITTER_MULTIPLIER << std::endl;
         std::cerr << "timestamp  : " << __TIMESTAMP__ << std::endl;
         std::cerr << "==================================================================================" << std::endl;
