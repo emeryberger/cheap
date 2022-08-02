@@ -119,7 +119,10 @@ class Initialization {
 
             long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
 
-#ifndef NO_SHUFFLE
+#ifdef NO_SHUFFLE
+            std::cerr << "Sorting objects..." << std::endl;
+            std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
+#else
             std::cerr << "Shuffling objects..." << std::endl;
             for (int i = 0; i < NObjectsToBeFreed; ++i) {
                 std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
@@ -128,9 +131,6 @@ class Initialization {
                 Objects[i] = Objects[Index];
                 Objects[Index] = Temporary;
             }
-#else
-            std::cerr << "Sorting objects..." << std::endl;
-            std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
 #endif
 
             for (long long int i = 0; i < NObjectsToBeFreed; ++i) {
