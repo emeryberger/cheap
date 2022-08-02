@@ -31,6 +31,8 @@ using json = nlohmann::json;
 #define LITTER_OCCUPANCY 0.95
 #endif
 
+static_assert(LITTER_OCCUPANCY >= 0 && LITTER_OCCUPANCY <= 1);
+
 class Initialization {
   public:
     Initialization() {
@@ -59,7 +61,7 @@ class Initialization {
         #ifdef SLEEP_BEFORE_PROGRAM
         std::cerr << "sleep      : " << SLEEP_BEFORE_PROGRAM << std::endl;
         #else
-        std::cerr << "sleep      : no" << SLEEP_BEFORE_PROGRAM << std::endl;
+        std::cerr << "sleep      : no" << std::endl;
         #endif
         std::cerr << "multiplier : " << LITTER_MULTIPLIER << std::endl;
         std::cerr << "timestamp  : " << __TIMESTAMP__ << std::endl;
