@@ -48,7 +48,17 @@ class Initialization {
 
         Dl_info MallocInformation;
         assert(dladdr((void*) &malloc, &MallocInformation) != 0);
-        std::cerr << "Using malloc from: " << MallocInformation.dli_fname << std::endl;
+        std::cerr << "==================================== Litterer ====================================" << std::endl;
+        std::cerr << "malloc     : " << MallocInformation.dli_fname << std::endl;
+        std::cerr << "occupancy  : " << LITTER_OCCUPANCY << std::endl;
+        #ifdef NO_SHUFFLE
+        std::cerr << "shuffle    : no" << std::endl;
+        #else
+        std::cerr << "shuffle    : yes" << std::endl;
+        #endif
+        std::cerr << "multiplier : " << LITTER_MULTIPLIER << std::endl;
+        std::cerr << "timestamp  : " << __TIMESTAMP__ << std::endl;
+        std::cerr << "==================================================================================" << std::endl;
 
         std::ifstream InputFile(DETECTOR_OUTPUT_FILENAME);
         json Data;
@@ -114,6 +124,7 @@ class Initialization {
                 Objects[Index] = Temporary;
             }
 #else
+            std::cerr << "Sorting objects..." << std::endl;
             std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
 #endif
 
@@ -132,6 +143,7 @@ class Initialization {
         sleep(SLEEP_BEFORE_PROGRAM);
         std::cerr << "Starting program now!" << std::endl;
 #endif
+        std::cerr << "==================================================================================" << std::endl;
 
         #ifdef OUTPUT_PERF_DATA
 	    PFMWrapper::start();
