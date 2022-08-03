@@ -24,7 +24,7 @@ using json = nlohmann::json;
 // Then, (1 - LITTER_OCCUPANCY) of them will be freed randomly.
 
 #ifndef LITTER_MULTIPLIER
-#define LITTER_MULTIPLIER 200
+#define LITTER_MULTIPLIER 20
 #endif
 
 #ifndef LITTER_OCCUPANCY
@@ -48,10 +48,18 @@ class Initialization {
         PFMWrapper::addEvent("dTLB-load-misses");
         #endif
 
+        #ifdef SEED
+        const auto Seed = SEED;
+        #else
+        const auto Seed = std::random_device()();
+        #endif
+        std::mt19937_64 Generator(Seed);
+
         Dl_info MallocInformation;
         assert(dladdr((void*) &malloc, &MallocInformation) != 0);
         std::cerr << "==================================== Litterer ====================================" << std::endl;
         std::cerr << "malloc     : " << MallocInformation.dli_fname << std::endl;
+        std::cerr << "seed       : " << Seed << std::endl;
         std::cerr << "occupancy  : " << LITTER_OCCUPANCY << std::endl;
         #ifdef NO_SHUFFLE
         std::cerr << "shuffle    : no" << std::endl;
@@ -87,7 +95,6 @@ class Initialization {
 
             std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
 
-            std::random_device Generator;
             std::uniform_int_distribution<long long int> Distribution(
                 0, NAllocations - Data["Bins"][Data["SizeClasses"].size()].get<int>() - 1);
             std::vector<void*> Objects = *(new std::vector<void*>);
