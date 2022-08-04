@@ -72,7 +72,7 @@ class Initialization {
         std::cerr << "sleep      : no" << std::endl;
         #endif
         std::cerr << "multiplier : " << LITTER_MULTIPLIER << std::endl;
-        std::cerr << "timestamp  : " << __TIMESTAMP__ << std::endl;
+        std::cerr << "timestamp  : " << __DATE__ << " " << __TIME__ << std::endl;
         std::cerr << "==================================================================================" << std::endl;
 
         std::ifstream InputFile(DETECTOR_OUTPUT_FILENAME);
@@ -100,7 +100,6 @@ class Initialization {
             std::vector<void*> Objects = *(new std::vector<void*>);
             Objects.reserve(NAllocationsLitter);
 
-            int Percentage = -1;
             for (long long int i = 0; i < NAllocationsLitter; ++i) {
                 size_t MinAllocationSize = 0;
                 size_t SizeClassIndex = 0;
@@ -117,22 +116,13 @@ class Initialization {
 
                 void* Pointer = malloc(AllocationSize);
                 Objects.push_back(Pointer);
-
-                int NewPercentage = 100.0 * (i + 1) / NAllocationsLitter;
-                if (NewPercentage > Percentage) {
-                    Percentage = NewPercentage;
-                    std::cerr << "Allocated " << i + 1 << " / " << NAllocationsLitter << " (" << Percentage
-                            << "%) objects." << std::endl;
-                }
             }
 
             long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
 
 #ifdef NO_SHUFFLE
-            std::cerr << "Sorting objects..." << std::endl;
             std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
 #else
-            std::cerr << "Shuffling objects..." << std::endl;
             for (int i = 0; i < NObjectsToBeFreed; ++i) {
                 std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
                 int Index = IndexDistribution(Generator);
