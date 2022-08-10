@@ -8,6 +8,7 @@
 
 static std::atomic_bool Ready{false};
 static thread_local int Busy{0};
+static thread_local bool in_dlsym{false};
 
 #ifndef SIZE_CLASSES
 // See http://jemalloc.net/jemalloc.3.html, up to 64MiB.
@@ -76,8 +77,18 @@ class Initialization {
 
 static Initialization _;
 
+static void * local_dlsym(void * handle, const char * symbol) {
+    in_dlsym = true;
+    auto result = ::dlsym(handle, symbol);
+    in_dlsym = false;
+    return result;
+}
+
 extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
-    static decltype(::malloc)* Malloc = (decltype(::malloc)*) dlsym(RTLD_NEXT, "malloc");
+    if (in_dlsym) {
+        return nullptr;
+    }
+    static decltype(::malloc)* Malloc = (decltype(::malloc)*) local_dlsym(RTLD_NEXT, "malloc");
 
     void* Pointer = (*Malloc)(Size);
 
@@ -107,7 +118,10 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
 }
 
 extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
-    static decltype(::calloc)* Calloc = (decltype(::calloc)*) dlsym(RTLD_NEXT, "calloc");
+    if (in_dlsym) {
+        return nullptr;
+    }
+    static decltype(::calloc)* Calloc = (decltype(::calloc)*) local_dlsym(RTLD_NEXT, "calloc");
 
     void* Pointer = (*Calloc)(N, Size);
 
@@ -138,7 +152,7 @@ extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
 }
 
 extern "C" ATTRIBUTE_EXPORT void free(void* Pointer) noexcept {
-    static decltype(::free)* Free = (decltype(::free)*) dlsym(RTLD_NEXT, "free");
+    static decltype(::free)* Free = (decltype(::free)*) local_dlsym(RTLD_NEXT, "free");
 
     if (!Busy && Ready) {
         ++Busy;
