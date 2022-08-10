@@ -2,6 +2,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -51,7 +52,10 @@ class Initialization {
         #ifdef SEED
         const auto Seed = SEED;
         #else
-        const auto Seed = std::random_device()();
+        auto Seed = std::random_device()();
+        if (const char * env = std::getenv("LITTER_SEED")) {
+            Seed = atoi(env);
+        }
         #endif
         std::mt19937_64 Generator(Seed);
 
