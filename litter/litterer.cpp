@@ -24,7 +24,7 @@ using json = nlohmann::json;
 class Initialization {
   public:
     Initialization() {
-        #ifdef OUTPUT_PERF_DATA
+#ifdef OUTPUT_PERF_DATA
         PFMWrapper::initialize();
         PFMWrapper::addEvent("instructions");
         PFMWrapper::addEvent("cycles");
@@ -34,7 +34,7 @@ class Initialization {
         PFMWrapper::addEvent("LLC-load-misses");
         PFMWrapper::addEvent("dTLB-loads");
         PFMWrapper::addEvent("dTLB-load-misses");
-        #endif
+#endif
 
         auto Seed = std::random_device{}();
         if (const char* env = std::getenv("LITTER_SEED")) {
@@ -86,11 +86,12 @@ class Initialization {
         // This can happen if no allocations were recorded.
         if (!Data["Bins"].empty()) {
             if (Data["Bins"][Data["SizeClasses"].size()].get<int>() != 0) {
-                std::cerr << "WARNING: Allocations of size greater than the maximum size class were recorded." << std::endl;
+                std::cerr << "WARNING: Allocations of size greater than the maximum size class were recorded."
+                          << std::endl;
                 std::cerr << "WARNING: There will be no littering for these allocations." << std::endl;
                 std::cerr << "WARNING: This represents "
-                        << ((double) Data["Bins"][Data["SizeClasses"].size()] / (double) NAllocations) * 100
-                        << "% of all allocations recorded." << std::endl;
+                          << ((double) Data["Bins"][Data["SizeClasses"].size()] / (double) NAllocations) * 100
+                          << "% of all allocations recorded." << std::endl;
             }
 
             std::chrono::high_resolution_clock::time_point StartTime = std::chrono::high_resolution_clock::now();
@@ -142,26 +143,26 @@ class Initialization {
         }
 
         if (Sleep) {
-            std::cerr << "Sleeping " << Sleep << " seconds before starting the program (PID: " << getpid()
-                    << ")..." << std::endl;
+            std::cerr << "Sleeping " << Sleep << " seconds before starting the program (PID: " << getpid() << ")..."
+                      << std::endl;
             sleep(Sleep);
             std::cerr << "Starting program now!" << std::endl;
         }
 
         std::cerr << "==================================================================================" << std::endl;
 
-        #ifdef OUTPUT_PERF_DATA
-	    PFMWrapper::start();
-        #endif
+#ifdef OUTPUT_PERF_DATA
+        PFMWrapper::start();
+#endif
     }
 
-    #ifdef OUTPUT_PERF_DATA
+#ifdef OUTPUT_PERF_DATA
     ~Initialization() {
         PFMWrapper::stop();
         PFMWrapper::print();
         PFMWrapper::cleanup();
     }
-    #endif
+#endif
 };
 
 static Initialization _;
