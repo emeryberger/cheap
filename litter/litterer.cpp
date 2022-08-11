@@ -21,19 +21,6 @@ using json = nlohmann::json;
 
 #include "constants.hpp"
 
-// (MaxLiveAllocations * LITTER_MULTIPLIER) objects will be allocated by the litterer.
-// Then, (1 - LITTER_OCCUPANCY) of them will be freed randomly.
-
-#ifndef LITTER_MULTIPLIER
-#define LITTER_MULTIPLIER 20
-#endif
-
-#ifndef LITTER_OCCUPANCY
-#define LITTER_OCCUPANCY 0.95
-#endif
-
-static_assert(LITTER_OCCUPANCY >= 0 && LITTER_OCCUPANCY <= 1);
-
 class Initialization {
   public:
     Initialization() {
@@ -49,33 +36,42 @@ class Initialization {
         PFMWrapper::addEvent("dTLB-load-misses");
         #endif
 
-        #ifdef SEED
-        const auto Seed = SEED;
-        #else
-        auto Seed = std::random_device()();
-        if (const char * env = std::getenv("LITTER_SEED")) {
+        auto Seed = std::random_device{}();
+        if (const char* env = std::getenv("LITTER_SEED")) {
             Seed = atoi(env);
         }
-        #endif
         std::mt19937_64 Generator(Seed);
+
+        auto Occupancy = 0.95;
+        if (const char* env = std::getenv("LITTER_OCCUPANCY")) {
+            Occupancy = atof(env);
+            assert(Occupancy >= 0 && Occupancy <= 1);
+        }
+
+        bool NoShuffle = false;
+        if (const char* env = std::getenv("LITTER_NO_SHUFFLE")) {
+            NoShuffle = atoi(env) != 0;
+        }
+
+        unsigned Sleep = 0;
+        if (const char* env = std::getenv("LITTER_SLEEP")) {
+            Sleep = atoi(env);
+        }
+
+        auto Multiplier = 20;
+        if (const char* env = std::getenv("LITTER_MULTIPLIER")) {
+            Multiplier = atoi(env);
+        }
 
         Dl_info MallocInformation;
         assert(dladdr((void*) &malloc, &MallocInformation) != 0);
         std::cerr << "==================================== Litterer ====================================" << std::endl;
         std::cerr << "malloc     : " << MallocInformation.dli_fname << std::endl;
         std::cerr << "seed       : " << Seed << std::endl;
-        std::cerr << "occupancy  : " << LITTER_OCCUPANCY << std::endl;
-        #ifdef NO_SHUFFLE
-        std::cerr << "shuffle    : no" << std::endl;
-        #else
-        std::cerr << "shuffle    : yes" << std::endl;
-        #endif
-        #ifdef SLEEP_BEFORE_PROGRAM
-        std::cerr << "sleep      : " << SLEEP_BEFORE_PROGRAM << std::endl;
-        #else
-        std::cerr << "sleep      : no" << std::endl;
-        #endif
-        std::cerr << "multiplier : " << LITTER_MULTIPLIER << std::endl;
+        std::cerr << "occupancy  : " << Occupancy << std::endl;
+        std::cerr << "shuffle    : " << (NoShuffle ? "no" : "yes") << std::endl;
+        std::cerr << "sleep      : " << (Sleep ? std::to_string(Sleep) : "no") << std::endl;
+        std::cerr << "multiplier : " << Multiplier << std::endl;
         std::cerr << "timestamp  : " << __DATE__ << " " << __TIME__ << std::endl;
         std::cerr << "==================================================================================" << std::endl;
 
@@ -85,7 +81,7 @@ class Initialization {
 
         long long int NAllocations = Data["NAllocations"].get<long long int>();
         long long int MaxLiveAllocations = Data["MaxLiveAllocations"].get<long long int>();
-        long long int NAllocationsLitter = MaxLiveAllocations * LITTER_MULTIPLIER;
+        long long int NAllocationsLitter = MaxLiveAllocations * Multiplier;
 
         // This can happen if no allocations were recorded.
         if (!Data["Bins"].empty()) {
@@ -122,19 +118,19 @@ class Initialization {
                 Objects.push_back(Pointer);
             }
 
-            long long int NObjectsToBeFreed = (1 - LITTER_OCCUPANCY) * NAllocationsLitter;
+            long long int NObjectsToBeFreed = (1 - Occupancy) * NAllocationsLitter;
 
-#ifdef NO_SHUFFLE
-            std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
-#else
-            for (int i = 0; i < NObjectsToBeFreed; ++i) {
-                std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
-                int Index = IndexDistribution(Generator);
-                void* Temporary = Objects[i];
-                Objects[i] = Objects[Index];
-                Objects[Index] = Temporary;
+            if (NoShuffle) {
+                std::sort(Objects.begin(), Objects.end(), std::greater<void*>());
+            } else {
+                for (int i = 0; i < NObjectsToBeFreed; ++i) {
+                    std::uniform_int_distribution<int> IndexDistribution(i, Objects.size() - 1);
+                    int Index = IndexDistribution(Generator);
+                    void* Temporary = Objects[i];
+                    Objects[i] = Objects[Index];
+                    Objects[Index] = Temporary;
+                }
             }
-#endif
 
             for (long long int i = 0; i < NObjectsToBeFreed; ++i) {
                 free(Objects[i]);
@@ -145,12 +141,13 @@ class Initialization {
             std::cerr << "Finished littering. Time taken: " << Elapsed.count() << " seconds." << std::endl;
         }
 
-#ifdef SLEEP_BEFORE_PROGRAM
-        std::cerr << "Sleeping " << SLEEP_BEFORE_PROGRAM << " seconds before starting the program (PID: " << getpid()
-                  << ")..." << std::endl;
-        sleep(SLEEP_BEFORE_PROGRAM);
-        std::cerr << "Starting program now!" << std::endl;
-#endif
+        if (Sleep) {
+            std::cerr << "Sleeping " << Sleep << " seconds before starting the program (PID: " << getpid()
+                    << ")..." << std::endl;
+            sleep(Sleep);
+            std::cerr << "Starting program now!" << std::endl;
+        }
+
         std::cerr << "==================================================================================" << std::endl;
 
         #ifdef OUTPUT_PERF_DATA
