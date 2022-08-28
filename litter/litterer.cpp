@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -63,6 +64,14 @@ class Initialization {
             Multiplier = atoi(env);
         }
 
+        if (!std::filesystem::exists(DETECTOR_OUTPUT_FILENAME)) {
+            std::cout << "[ERROR] " << DETECTOR_OUTPUT_FILENAME << " does not exist..." << std::endl;
+            return;
+        }
+        std::ifstream InputFile(DETECTOR_OUTPUT_FILENAME);
+        json Data;
+        InputFile >> Data;
+
         Dl_info MallocInformation;
         assert(dladdr((void*) &malloc, &MallocInformation) != 0);
         std::cerr << "==================================== Litterer ====================================" << std::endl;
@@ -75,10 +84,6 @@ class Initialization {
         std::cerr << "timestamp  : " << __DATE__ << " " << __TIME__ << std::endl;
         std::cerr << "==================================================================================" << std::endl;
 
-        std::ifstream InputFile(DETECTOR_OUTPUT_FILENAME);
-        json Data;
-        InputFile >> Data;
-
         long long int NAllocations = Data["NAllocations"].get<long long int>();
         long long int MaxLiveAllocations = Data["MaxLiveAllocations"].get<long long int>();
         long long int NAllocationsLitter = MaxLiveAllocations * Multiplier;
@@ -86,10 +91,10 @@ class Initialization {
         // This can happen if no allocations were recorded.
         if (!Data["Bins"].empty()) {
             if (Data["Bins"][Data["SizeClasses"].size()].get<int>() != 0) {
-                std::cerr << "WARNING: Allocations of size greater than the maximum size class were recorded."
+                std::cerr << "[WARNING] Allocations of size greater than the maximum size class were recorded."
                           << std::endl;
-                std::cerr << "WARNING: There will be no littering for these allocations." << std::endl;
-                std::cerr << "WARNING: This represents "
+                std::cerr << "[WARNING] There will be no littering for these allocations." << std::endl;
+                std::cerr << "[WARNING] This represents "
                           << ((double) Data["Bins"][Data["SizeClasses"].size()] / (double) NAllocations) * 100
                           << "% of all allocations recorded." << std::endl;
             }
