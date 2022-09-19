@@ -84,7 +84,7 @@ static void * local_dlsym(void * handle, const char * symbol) {
     return result;
 }
 
-extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
+extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) {
     if (in_dlsym) {
         return nullptr;
     }
@@ -104,8 +104,8 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
         Average = Average + (Size - Average) / (NAllocations + 1);
         NAllocations++;
 
-        long int LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
-        long int MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        int64_t LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
+        int64_t MaxLiveAllocationsSnapshot = MaxLiveAllocations;
         while (LiveAllocationsSnapshot > MaxLiveAllocationsSnapshot) {
             MaxLiveAllocations.compare_exchange_weak(MaxLiveAllocationsSnapshot, LiveAllocationsSnapshot);
             MaxLiveAllocationsSnapshot = MaxLiveAllocations;
@@ -117,7 +117,7 @@ extern "C" ATTRIBUTE_EXPORT void* malloc(size_t Size) noexcept {
     return Pointer;
 }
 
-extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
+extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) {
     if (in_dlsym) {
         return nullptr;
     }
@@ -138,8 +138,8 @@ extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
         Average = Average + (TotalSize - Average) / (NAllocations + 1);
         NAllocations++;
 
-        long int LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
-        long int MaxLiveAllocationsSnapshot = MaxLiveAllocations;
+        int64_t LiveAllocationsSnapshot = LiveAllocations.fetch_add(1) + 1;
+        int64_t MaxLiveAllocationsSnapshot = MaxLiveAllocations;
         while (LiveAllocationsSnapshot > MaxLiveAllocationsSnapshot) {
             MaxLiveAllocations.compare_exchange_weak(MaxLiveAllocationsSnapshot, LiveAllocationsSnapshot);
             MaxLiveAllocationsSnapshot = MaxLiveAllocations;
@@ -151,7 +151,7 @@ extern "C" ATTRIBUTE_EXPORT void* calloc(size_t N, size_t Size) noexcept {
     return Pointer;
 }
 
-extern "C" ATTRIBUTE_EXPORT void free(void* Pointer) noexcept {
+extern "C" ATTRIBUTE_EXPORT void free(void* Pointer) {
     static decltype(::free)* Free = (decltype(::free)*) local_dlsym(RTLD_NEXT, "free");
 
     if (!Busy && Ready) {
