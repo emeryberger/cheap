@@ -1,4 +1,3 @@
-CXX := clang++
 CXXFLAGS := --std=c++17 -fPIC -g -Wall -fvisibility=hidden -O3
 LDFLAGS := -fPIC -shared
 
